@@ -17,8 +17,18 @@ local function setup(opts)
     end
 end
 
+local function get_cursor_pos()
+    local _, row, col, _ = unpack(vim.fn.getpos('.'))
+    return {row = row, col = col}
+end
+
 local function find_range(brace_pair)
-    local filter = 'synIDattr(synID(line("."), col("."), 0), "name") =~? "string"'
+    local function filter()
+        local pos = get_cursor_pos()
+        local attr = vim.fn.synIDattr(vim.fn.synID(pos.row, pos.col, false), 'name')
+        return attr:find('String$')
+    end
+
     local row1, col1 = unpack(vim.fn.searchpairpos(brace_pair[1], '', brace_pair[2], 'Wnb', filter))
     if row1 > 0 and col1 > 0 then
         local row2, col2 = unpack(vim.fn.searchpairpos(brace_pair[1], '', brace_pair[2], 'Wcn', filter))
@@ -49,18 +59,18 @@ local function find_ranges(brace_pairs)
 end
 
 local function compare_ranges(range1, range2)
-    local _, row, col, _ = unpack(vim.fn.getpos('.'))
+    local pos = get_cursor_pos()
 
-    local row_diff1 = row - range1.row1
-    local row_diff2 = row - range2.row1
+    local row_diff1 = pos.row - range1.row1
+    local row_diff2 = pos.row - range2.row1
     if row_diff1 < row_diff2 then
         return -1
     elseif row_diff1 > row_diff2 then
         return 1
     end
 
-    local col_diff1 = col - range1.col1
-    local col_diff2 = col - range2.col1
+    local col_diff1 = pos.col - range1.col1
+    local col_diff2 = pos.col - range2.col1
     if col_diff1 < col_diff2 then
         return -1
     elseif col_diff1 > col_diff2 then
@@ -72,7 +82,6 @@ end
 
 local function find_range_closest(brace_pairs)
     local ranges = find_ranges(brace_pairs)
-    print(#ranges)
     if ranges then
         return vim.fn.sort(ranges, compare_ranges)[1]
     end
