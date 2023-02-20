@@ -290,7 +290,7 @@ local function unwrap_brace_range(brace_range)
     line = line .. brace_range.suffix
 
     vim.fn.setline(brace_range.row1, line)
-    vim.fn.execute(string.format('%d,%dd_',  brace_range.row1 + 1,  brace_range.row2))
+    vim.fn.execute(string.format('%d,%dd_', brace_range.row1 + 1, brace_range.row2))
 end
 
 local function reflow()
