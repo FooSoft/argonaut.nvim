@@ -45,17 +45,17 @@ local function find_brace_alt(brace)
     end
 end
 
-local function escape_brace(brace)
-    if brace == '[' or brace == ']' then
-        return '\\' .. brace
-    else
-        return brace
-    end
-end
-
 local function find_brace_range(brace)
     local brace_alt, _ = find_brace_alt(brace)
     assert(brace_alt)
+
+    local escape_brace = function(brace_raw)
+        if brace_raw == '[' or brace_raw == ']' then
+            return '\\' .. brace_raw
+        else
+            return brace_raw
+        end
+    end
 
     ---@diagnostic disable-next-line: param-type-mismatch
     local row1, col1 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wnb', is_string_literal))
