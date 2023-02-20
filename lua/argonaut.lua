@@ -165,6 +165,7 @@ local function parse_brace_range(brace_range)
     local brace_range_param = ''
     local flush_brace_range_param = function()
         if #brace_range_param > 0 then
+            brace_range_param = string.gsub(brace_range_param , '^%s*(.-)%s*$', '%1')
             table.insert(brace_range.params, brace_range_param)
             brace_range_param = ''
         end
@@ -289,7 +290,7 @@ local function unwrap_brace_range(brace_range)
     line = line .. brace_range.suffix
 
     vim.fn.setline(brace_range.row1, line)
-    vim.fn.execute(string.format('%d,%dd_',  brace_range.row1 + 1,  brace_range.row2), true)
+    vim.fn.execute(string.format('%d,%dd_',  brace_range.row1 + 1,  brace_range.row2))
 end
 
 local function reflow()
