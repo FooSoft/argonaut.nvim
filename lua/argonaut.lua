@@ -93,10 +93,8 @@ local function find_brace_range(brace)
         end
     end
 
-    ---@diagnostic disable-next-line: param-type-mismatch
     local row1, col1 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wnb', is_string_literal))
     if row1 > 0 and col1 > 0 then
-        ---@diagnostic disable-next-line: param-type-mismatch
         local row2, col2 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wcn', is_string_literal))
         if row2 > 0 and col2 > 0 then
             return {
@@ -156,11 +154,11 @@ local function parse_brace_range(brace_range)
     brace_range.params = {}
 
     local first_line = vim.fn.getline(brace_range.row1)
-    brace_range.indent = first_line:match('^(%s*)') ---@diagnostic disable-line: undefined-field
-    brace_range.prefix = first_line:sub(#brace_range.indent + 1, brace_range.col1) ---@diagnostic disable-line: undefined-field
+    brace_range.indent = first_line:match('^(%s*)')
+    brace_range.prefix = first_line:sub(#brace_range.indent + 1, brace_range.col1)
 
     local last_line = vim.fn.getline(brace_range.row2)
-    brace_range.suffix = last_line:sub(brace_range.col2) ---@diagnostic disable-line: undefined-field
+    brace_range.suffix = last_line:sub(brace_range.col2)
 
     local brace_range_param = ''
     local flush_brace_range_param = function()
@@ -200,7 +198,7 @@ local function parse_brace_range(brace_range)
         end
 
         for col = col1, col2 do
-            local c = line:sub(col, col) ---@diagnostic disable-line: undefined-field
+            local c = line:sub(col, col)
             assert(#c > 0)
 
             if lead_padding then
