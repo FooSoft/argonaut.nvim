@@ -129,7 +129,6 @@ local function parse_brace_range(brace_range)
     local brace_range_param = ''
     local flush_brace_range_param = function()
         if #brace_range_param > 0 then
-            brace_range_param, _ = brace_range_param:gsub('^%s*([%S%s]-)%s*$', '%1')
             table.insert(brace_range.params, brace_range_param)
             brace_range_param = ''
         end
@@ -147,10 +146,13 @@ local function parse_brace_range(brace_range)
     end
 
     local brace_range_elements = {}
+    local pad_newline = false
+
     for row = brace_range.row1, brace_range.row2 do
+        local lead_padding = true
         local line = vim.fn.getline(row)
 
-        local col1 = 0
+        local col1 = 1
         if row == brace_range.row1 then
             col1 = brace_range.col1 + 1
         end
@@ -160,11 +162,34 @@ local function parse_brace_range(brace_range)
             col2 = brace_range.col2 - 1
         end
 
-        for i = col1, col2 do
-            table.insert(brace_range_elements, {
-                char = line:sub(i, i), ---@diagnostic disable-line: undefined-field
-                literal = is_string_literal({row = row, col = i}),
-            })
+        for col = col1, col2 do
+            local c = line:sub(col, col) ---@diagnostic disable-line: undefined-field
+            assert(#c > 0)
+
+            if lead_padding then
+                if c:match('%s') then
+                    if pad_newline and col == col1 then
+                        c = ' '
+                    else
+                        c = nil
+                    end
+                else
+                    lead_padding = false
+                end
+            end
+
+            if c then
+                table.insert(brace_range_elements, {
+                    char = c,
+                    literal = is_string_literal({row = row, col = col}),
+                })
+
+                if c == ',' then
+                    pad_newline = true
+                else
+                    pad_newline = false
+                end
+            end
         end
     end
 
