@@ -57,8 +57,10 @@ local function find_brace_range(brace)
     local brace_alt, _ = find_brace_alt(brace)
     assert(brace_alt)
 
-    local row1, col1 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wnb', is_string_literal))
+    ---@diagnostic disable-next-line: param-type-mismatch
+    local row1, col1 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wnb', is_string_literal)) 
     if row1 > 0 and col1 > 0 then
+        ---@diagnostic disable-next-line: param-type-mismatch
         local row2, col2 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wcn', is_string_literal))
         if row2 > 0 and col2 > 0 then
             return {
@@ -115,12 +117,14 @@ local function find_closest_brace_range(braces)
 end
 
 local function parse_brace_range(brace_range)
-    local brace_range_params = {}
+    brace_range.params = {}
+    brace_range.indent = 0
+
     local brace_range_param = ''
     local flush_brace_range_param = function()
         if #brace_range_param > 0 then
             brace_range_param, _ = brace_range_param:gsub('^%s*([%S%s]-)%s*$', '%1')
-            table.insert(brace_range_params, brace_range_param)
+            table.insert(brace_range.params, brace_range_param)
             brace_range_param = ''
         end
     end
@@ -143,6 +147,7 @@ local function parse_brace_range(brace_range)
         local col1 = 0
         if row == brace_range.row1 then
             col1 = brace_range.col1 + 1
+            _, brace_range.indent = line:find('^%s*') ---@diagnostic disable-line: undefined-field
         end
 
         local col2 = #line
@@ -176,16 +181,25 @@ local function parse_brace_range(brace_range)
 
         flush_brace_range_param()
     end
+end
 
-    for _, p in ipairs(brace_range_params) do
-        print(p)
-    end
+local function wrap_brace_range(brace_range)
+
+end
+
+local function unwrap_brace_range(brace_range)
+
 end
 
 local function reflow()
     local brace_range = find_closest_brace_range({'(', '[', '{', '<'})
     if brace_range then
         parse_brace_range(brace_range)
+        if brace_range.row1 == brace_range.row2 then
+            wrap_brace_range(brace_range)
+        else
+            unwrap_brace_range()
+        end
     end
 end
 
