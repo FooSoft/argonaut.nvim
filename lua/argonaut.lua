@@ -160,12 +160,26 @@ local function parse_brace_range(brace_range)
     local last_line = vim.fn.getline(brace_range.row2)
     brace_range.suffix = last_line:sub(brace_range.col2)
 
-    local brace_range_param = ''
+    local brace_range_param = nil
     local flush_brace_range_param = function()
-        if #brace_range_param > 0 then
-            brace_range_param = string.gsub(brace_range_param , '^%s*(.-)%s*$', '%1')
+        if brace_range_param then
+            brace_range_param.text = string.gsub(brace_range_param.text , '^%s*(.-)%s*$', '%1')
             table.insert(brace_range.params, brace_range_param)
-            brace_range_param = ''
+            brace_range_param = nil
+        end
+    end
+
+    local update_brace_range_param = function(element)
+        if brace_range_param then
+            brace_range_param.text = brace_range_param.text .. element.char
+            brace_range_param.length = brace_range_param.length + 1
+        else
+            brace_range_param = {
+                text = element.char,
+                row = element.row,
+                col = element.col,
+                length = 1,
+            }
         end
     end
 
@@ -198,28 +212,30 @@ local function parse_brace_range(brace_range)
         end
 
         for col = col1, col2 do
-            local c = line:sub(col, col)
-            assert(#c > 0)
+            local char = line:sub(col, col)
+            assert(#char > 0)
 
             if lead_padding then
-                if c:match('%s') then
+                if char:match('%s') then
                     if pad_newline and col == col1 then
-                        c = ' '
+                        char = ' '
                     else
-                        c = nil
+                        char = nil
                     end
                 else
                     lead_padding = false
                 end
             end
 
-            if c then
+            if char then
                 table.insert(brace_range_elements, {
-                    char = c,
+                    row = row,
+                    col = col,
+                    char = char,
                     literal = is_string_literal({row = row, col = col}),
                 })
 
-                if c == ',' then
+                if char == ',' then
                     pad_newline = true
                 else
                     pad_newline = false
@@ -240,7 +256,7 @@ local function parse_brace_range(brace_range)
             end
 
             if append then
-                brace_range_param = brace_range_param .. brace_range_element.char
+                update_brace_range_param(brace_range_element)
             end
         end
 
@@ -257,7 +273,7 @@ local function wrap_brace_range(brace_range)
     for i, param in ipairs(brace_range.params) do
         local on_last_row = i == #brace_range.params
 
-        local line = brace_range.indent .. param
+        local line = brace_range.indent .. param.text
         if config.tail_comma or not on_last_row then
             line = line .. ','
         end
@@ -280,7 +296,7 @@ end
 local function unwrap_brace_range(brace_range)
     local line = brace_range.indent .. brace_range.prefix
     for i, param in ipairs(brace_range.params) do
-        line = line .. param
+        line = line .. param.text
         if i < #brace_range.params then
             line = line .. ', '
         end
