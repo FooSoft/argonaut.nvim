@@ -118,7 +118,13 @@ end
 
 local function parse_brace_range(brace_range)
     brace_range.params = {}
-    brace_range.indent = 0
+
+    local first_line = vim.fn.getline(brace_range.row1)
+    _, brace_range.indent = first_line:find('^%s*') ---@diagnostic disable-line: undefined-field
+    brace_range.prefix = first_line:sub(brace_range.indent, brace_range.col1) ---@diagnostic disable-line: undefined-field
+
+    local last_line = vim.fn.getline(brace_range.row2)
+    brace_range.suffix = last_line:sub(brace_range.col2) ---@diagnostic disable-line: undefined-field
 
     local brace_range_param = ''
     local flush_brace_range_param = function()
@@ -147,7 +153,6 @@ local function parse_brace_range(brace_range)
         local col1 = 0
         if row == brace_range.row1 then
             col1 = brace_range.col1 + 1
-            _, brace_range.indent = line:find('^%s*') ---@diagnostic disable-line: undefined-field
         end
 
         local col2 = #line
@@ -184,11 +189,21 @@ local function parse_brace_range(brace_range)
 end
 
 local function wrap_brace_range(brace_range)
-
+    print('wrap')
 end
 
 local function unwrap_brace_range(brace_range)
+    local line = string.rep(' ', brace_range.indent) .. brace_range.prefix
+    for i, param in ipairs(brace_range.params) do
+        line = line .. param
+        if i < #brace_range.params then
+            line = line .. ', '
+        end
+    end
+    line = line .. brace_range.suffix
 
+    vim.fn.setline(brace_range.row1, line)
+    vim.fn.execute(string.format('%d,%dd_', brace_range.row1 + 1, brace_range.row2), true)
 end
 
 local function reflow()
@@ -198,7 +213,7 @@ local function reflow()
         if brace_range.row1 == brace_range.row2 then
             wrap_brace_range(brace_range)
         else
-            unwrap_brace_range()
+            unwrap_brace_range(brace_range)
         end
     end
 end
