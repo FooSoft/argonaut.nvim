@@ -8,6 +8,9 @@ local argonaut_configs = {
         wrap_closing_brace = true,
         comma_first = false,
         comma_first_indent = false,
+    },
+    go = {
+        tail_comma = true,
     }
 }
 
@@ -72,7 +75,7 @@ local function is_string_literal(pos)
         pos = get_cursor_pos()
     end
 
-    local syn_id = vim.fn.synID(pos.row, pos.col, false)
+    local syn_id = vim.fn.synID(pos.row,  pos.col,  false)
     local syn_attr = vim.fn.synIDattr(syn_id, 'name')
 
     return syn_attr:find('String$')
@@ -247,15 +250,21 @@ local function parse_brace_range(brace_range)
 end
 
 local function wrap_brace_range(brace_range)
+    local config = get_config()
+
     vim.fn.setline(brace_range.row1, brace_range.indent .. brace_range.prefix)
 
     local row = brace_range.row1
     for i, param in ipairs(brace_range.params) do
-        local last = i == #brace_range.params
+        local on_last_row = i == #brace_range.params
 
         local line = brace_range.indent .. param
-        if not last then
+        if config.tail_comma or not on_last_row then
             line = line .. ','
+        end
+
+        if on_last_row and not config.wrap_closing_brace then
+            line = line .. brace_range.suffix
         end
 
         vim.fn.append(row, line)
@@ -264,7 +273,9 @@ local function wrap_brace_range(brace_range)
         row = row + 1
     end
 
-    vim.fn.append(row, brace_range.indent .. brace_range.suffix)
+    if config.wrap_closing_brace then
+        vim.fn.append(row, brace_range.indent .. brace_range.suffix)
+    end
 end
 
 local function unwrap_brace_range(brace_range)
@@ -278,11 +289,11 @@ local function unwrap_brace_range(brace_range)
     line = line .. brace_range.suffix
 
     vim.fn.setline(brace_range.row1, line)
-    vim.fn.execute(string.format('%d,%dd_', brace_range.row1 + 1, brace_range.row2), true)
+    vim.fn.execute(string.format('%d,%dd_',  brace_range.row1 + 1,  brace_range.row2), true)
 end
 
 local function reflow()
-    local brace_range = find_closest_brace_range({'(', '[', '{', '<'})
+    local brace_range = find_closest_brace_range({'(',  '[',  '{',  '<'})
     if brace_range then
         parse_brace_range(brace_range)
         if brace_range.row1 == brace_range.row2 then
