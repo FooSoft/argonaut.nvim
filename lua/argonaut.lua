@@ -22,18 +22,7 @@ local function get_cursor_pos()
     return {row = row, col = col}
 end
 
-local function is_string_literal(pos)
-    if not pos then
-        pos = get_cursor_pos()
-    end
-
-    local syn_id = vim.fn.synID(pos.row, pos.col, false)
-    local syn_attr = vim.fn.synIDattr(syn_id, 'name')
-
-    return syn_attr:find('String$')
-end
-
-local function find_brace_alt(brace)
+local function get_brace_alt(brace)
     local brace_pairs = {{'(', ')'}, {'[', ']'}, {'{', '}'}, {'<', '>'}}
 
     for _, brace_pair in ipairs(brace_pairs) do
@@ -45,8 +34,19 @@ local function find_brace_alt(brace)
     end
 end
 
+local function is_string_literal(pos)
+    if not pos then
+        pos = get_cursor_pos()
+    end
+
+    local syn_id = vim.fn.synID(pos.row, pos.col, false)
+    local syn_attr = vim.fn.synIDattr(syn_id, 'name')
+
+    return syn_attr:find('String$')
+end
+
 local function find_brace_range(brace)
-    local brace_alt, _ = find_brace_alt(brace)
+    local brace_alt, _ = get_brace_alt(brace)
     assert(brace_alt)
 
     local escape_brace = function(brace_raw)
@@ -137,7 +137,7 @@ local function parse_brace_range(brace_range)
     local brace_stack = {}
     local update_brace_stack = function(c)
         local brace_stack_size = #brace_stack
-        local brace_alt, brace_open = find_brace_alt(c)
+        local brace_alt, brace_open = get_brace_alt(c)
         if brace_stack_size > 0 and brace_alt == brace_stack[brace_stack_size] and not brace_open then
             table.remove(brace_stack, brace_stack_size)
         elseif brace_alt then
