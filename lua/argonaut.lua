@@ -58,7 +58,7 @@ local function find_brace_range(brace)
     assert(brace_alt)
 
     ---@diagnostic disable-next-line: param-type-mismatch
-    local row1, col1 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wnb', is_string_literal)) 
+    local row1, col1 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wnb', is_string_literal))
     if row1 > 0 and col1 > 0 then
         ---@diagnostic disable-next-line: param-type-mismatch
         local row2, col2 = unpack(vim.fn.searchpairpos(escape_brace(brace), '', escape_brace(brace_alt), 'Wcn', is_string_literal))
@@ -120,8 +120,8 @@ local function parse_brace_range(brace_range)
     brace_range.params = {}
 
     local first_line = vim.fn.getline(brace_range.row1)
-    _, brace_range.indent = first_line:find('^%s*') ---@diagnostic disable-line: undefined-field
-    brace_range.prefix = first_line:sub(brace_range.indent, brace_range.col1) ---@diagnostic disable-line: undefined-field
+    brace_range.indent = first_line:match('^(%s*)') ---@diagnostic disable-line: undefined-field
+    brace_range.prefix = first_line:sub(#brace_range.indent + 1, brace_range.col1) ---@diagnostic disable-line: undefined-field
 
     local last_line = vim.fn.getline(brace_range.row2)
     brace_range.suffix = last_line:sub(brace_range.col2) ---@diagnostic disable-line: undefined-field
@@ -189,13 +189,13 @@ local function parse_brace_range(brace_range)
 end
 
 local function wrap_brace_range(brace_range)
-    vim.fn.setline(brace_range.row1, string.rep(' ', brace_range.indent) .. brace_range.prefix)
+    vim.fn.setline(brace_range.row1, brace_range.indent .. brace_range.prefix)
 
     local row = brace_range.row1
     for i, param in ipairs(brace_range.params) do
         local last = i == #brace_range.params
 
-        local line = string.rep(' ', brace_range.indent) .. param
+        local line = brace_range.indent .. param
         if not last then
             line = line .. ','
         end
@@ -206,11 +206,11 @@ local function wrap_brace_range(brace_range)
         row = row + 1
     end
 
-    vim.fn.append(row, string.rep(' ', brace_range.indent) .. brace_range.suffix)
+    vim.fn.append(row, brace_range.indent .. brace_range.suffix)
 end
 
 local function unwrap_brace_range(brace_range)
-    local line = string.rep(' ', brace_range.indent) .. brace_range.prefix
+    local line = brace_range.indent .. brace_range.prefix
     for i, param in ipairs(brace_range.params) do
         line = line .. param
         if i < #brace_range.params then
