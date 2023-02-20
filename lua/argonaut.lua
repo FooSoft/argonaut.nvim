@@ -1,20 +1,53 @@
-local ArgonautConfig = {
-    line_prefix = '',
-    padded_braces = {},
-    tail_comma = false,
-    tail_comma_braces = {},
-    tail_indent_braces = {},
-    wrap_closing_brace = true,
-    comma_first = false,
-    comma_first_indent = false,
+local argonaut_configs = {
+    default = {
+        line_prefix = '',
+        padded_braces = {},
+        tail_comma = false,
+        tail_comma_braces = {},
+        tail_indent_braces = {},
+        wrap_closing_brace = true,
+        comma_first = false,
+        comma_first_indent = false,
+    }
 }
 
-local function setup(opts)
+local function setup(opts, filetypes)
     if opts then
-        for key, value in pairs(opts) do
-            ArgonautConfig[key] = value
+        if type(filetypes) == 'string' then
+            filetypes = {filetypes}
+        elseif not filetypes then
+            filetypes = {'default'}
+        end
+
+        for _, filetype in ipairs(filetypes) do
+            local config = argonaut_configs[filetype]
+            if not config then
+                config = {}
+                argonaut_configs[filetype] = config
+            end
+
+            for key, value in pairs(opts) do
+                config[key] = value
+            end
         end
     end
+end
+
+local function get_config()
+    local file_config = argonaut_configs[vim.bo.filetype]
+
+    local config = {}
+    for key, value in pairs(argonaut_configs.default) do
+        config[key] = value
+        if file_config then
+            local file_value = file_config[key]
+            if file_value ~= nil then
+                config[key] = file_config[key]
+            end
+        end
+    end
+
+    return config
 end
 
 local function get_cursor_pos()
@@ -262,5 +295,5 @@ end
 
 return {
     reflow = reflow,
-    ssetup = setup,
+    setup = setup,
 }
