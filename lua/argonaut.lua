@@ -189,7 +189,24 @@ local function parse_brace_range(brace_range)
 end
 
 local function wrap_brace_range(brace_range)
-    print('wrap')
+    vim.fn.setline(brace_range.row1, string.rep(' ', brace_range.indent) .. brace_range.prefix)
+
+    local row = brace_range.row1
+    for i, param in ipairs(brace_range.params) do
+        local last = i == #brace_range.params
+
+        local line = string.rep(' ', brace_range.indent) .. param
+        if not last then
+            line = line .. ','
+        end
+
+        vim.fn.append(row, line)
+        vim.fn.execute(string.format('%d>', row + 1))
+
+        row = row + 1
+    end
+
+    vim.fn.append(row, string.rep(' ', brace_range.indent) .. brace_range.suffix)
 end
 
 local function unwrap_brace_range(brace_range)
