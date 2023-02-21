@@ -207,7 +207,6 @@ local function parse_brace_range(brace_range)
     local pad_newline = false
 
     for row = brace_range.row1, brace_range.row2 do
-        local lead_padding = true
         local line = vim.fn.getline(row)
 
         local col1 = 1
@@ -220,44 +219,45 @@ local function parse_brace_range(brace_range)
             col2 = brace_range.col2 - 1
         end
 
+        local indenting = true
         for col = col1, col2 do
             local char = line:sub(col, col)
+            local padding = false
             assert(#char > 0)
 
-            if lead_padding then
+            if indenting then
                 if char:match('%s') then
                     if pad_newline and col == col1 then
                         char = ' '
                     else
-                        char = nil
+                        padding = true
                     end
                 else
-                    lead_padding = false
+                    indenting = false
                 end
             end
 
-            if char then
-                table.insert(brace_range_elements, {
-                    row = row,
-                    col = col,
-                    char = char,
-                    brace = brace_range.brace,
-                    literal = is_string_literal({row = row, col = col}),
-                })
+            table.insert(brace_range_elements, {
+                row = row,
+                col = col,
+                char = char,
+                brace = brace_range.brace,
+                padding = padding,
+                literal = is_string_literal({row = row, col = col}),
+            })
 
-                if char == ',' then
-                    pad_newline = true
-                else
-                    pad_newline = false
-                end
+            if char == ',' then
+                pad_newline = true
+            else
+                pad_newline = false
             end
         end
     end
 
     if #brace_range_elements > 0 then
         for _, brace_range_element in ipairs(brace_range_elements) do
-            local append = true
-            if not brace_range_element.literal then
+            local append = not brace_range_element.padding
+            if append and not brace_range_element.literal then
                 update_brace_stack(brace_range_element.char)
                 if #brace_stack == 0 and brace_range_element.char == ',' then
                     flush_brace_range_param()
