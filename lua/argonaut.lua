@@ -163,7 +163,19 @@ local function parse_brace_range(brace_range)
     local brace_range_param = nil
     local flush_brace_range_param = function()
         if brace_range_param then
-            brace_range_param.text = string.gsub(brace_range_param.text , '^%s*(.-)%s*$', '%1')
+            local pad_start, pad_end = brace_range_param.text:find('^%s+')
+            if pad_start and pad_end then
+                local pad_length = pad_end - pad_start + 1
+                brace_range_param.col = brace_range_param.col + pad_length
+                brace_range_param.text = brace_range_param.text:sub(pad_length + 1)
+            end
+
+            pad_start, pad_end = brace_range_param.text:find('%s+$')
+            if pad_start and pad_end then
+                local pad_length = pad_end - pad_start + 1
+                brace_range_param.text = brace_range_param.text:sub(1, #brace_range_param.text - pad_length)
+            end
+
             table.insert(brace_range.params, brace_range_param)
             brace_range_param = nil
         end
@@ -172,14 +184,8 @@ local function parse_brace_range(brace_range)
     local update_brace_range_param = function(element)
         if brace_range_param then
             brace_range_param.text = brace_range_param.text .. element.char
-            brace_range_param.length = brace_range_param.length + 1
         else
-            brace_range_param = {
-                text = element.char,
-                row = element.row,
-                col = element.col,
-                length = 1,
-            }
+            brace_range_param = {text = element.char, row = element.row, col = element.col, brace = element.brace}
         end
     end
 
@@ -232,6 +238,7 @@ local function parse_brace_range(brace_range)
                     row = row,
                     col = col,
                     char = char,
+                    brace = brace_range.brace,
                     literal = is_string_literal({row = row, col = col}),
                 })
 
