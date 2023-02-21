@@ -163,20 +163,23 @@ local function parse_brace_range(brace_range)
     local brace_range_param = nil
     local flush_brace_range_param = function()
         if brace_range_param then
-            local pad_start, pad_end = brace_range_param.text:find('^%s+')
-            if pad_start and pad_end then
-                local pad_length = pad_end - pad_start + 1
+            local left_pad_start, left_pad_end = brace_range_param.text:find('^%s+')
+            if left_pad_start and left_pad_end then
+                local pad_length = left_pad_end - left_pad_start + 1
                 brace_range_param.col = brace_range_param.col + pad_length
                 brace_range_param.text = brace_range_param.text:sub(pad_length + 1)
             end
 
-            pad_start, pad_end = brace_range_param.text:find('%s+$')
-            if pad_start and pad_end then
-                local pad_length = pad_end - pad_start + 1
+            local right_pad_start, right_pad_end = brace_range_param.text:find('%s+$')
+            if right_pad_start and right_pad_end then
+                local pad_length = right_pad_end - right_pad_start + 1
                 brace_range_param.text = brace_range_param.text:sub(1, #brace_range_param.text - pad_length)
             end
 
-            table.insert(brace_range.params, brace_range_param)
+            if #brace_range_param.text > 0 then
+                table.insert(brace_range.params, brace_range_param)
+            end
+
             brace_range_param = nil
         end
     end
