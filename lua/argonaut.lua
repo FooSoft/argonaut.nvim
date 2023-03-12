@@ -150,7 +150,7 @@ local function find_closest_brace_range(braces)
     end
 end
 
-local function parse_brace_range(brace_range)
+local function parse_brace_range_params(brace_range)
     brace_range.params = {}
 
     local first_line = vim.fn.getline(brace_range.row1)
@@ -188,7 +188,12 @@ local function parse_brace_range(brace_range)
         if brace_range_param then
             brace_range_param.text = brace_range_param.text .. element.char
         else
-            brace_range_param = {text = element.char, row = element.row, col = element.col, brace = element.brace}
+            brace_range_param = {
+                text = element.char,
+                row = element.row,
+                col = element.col,
+                brace = element.brace
+            }
         end
     end
 
@@ -254,23 +259,47 @@ local function parse_brace_range(brace_range)
         end
     end
 
-    if #brace_range_elements > 0 then
-        for _, brace_range_element in ipairs(brace_range_elements) do
-            local append = not brace_range_element.padding
-            if append and not brace_range_element.literal then
-                update_brace_stack(brace_range_element.char)
-                if #brace_stack == 0 and brace_range_element.char == ',' then
-                    flush_brace_range_param()
-                    append = false
-                end
-            end
-
-            if append then
-                update_brace_range_param(brace_range_element)
+    for _, brace_range_element in ipairs(brace_range_elements) do
+        local append = not brace_range_element.padding
+        if append and not brace_range_element.literal then
+            update_brace_stack(brace_range_element.char)
+            if #brace_stack == 0 and brace_range_element.char == ',' then
+                flush_brace_range_param()
+                append = false
             end
         end
 
-        flush_brace_range_param()
+        if append then
+            update_brace_range_param(brace_range_element)
+        end
+    end
+
+    flush_brace_range_param()
+
+    if #brace_range.params > 0 then
+        local cursor_pos = get_cursor_pos()
+
+        for i, param in ipairs(brace_range.params) do
+            local contains_row =
+                cursor_pos.row == param.row
+
+            local contains_col =
+                cursor_pos.col >= param.col and
+                cursor_pos.col <= param.col + #param.text
+
+            if contains_row and contains_col then
+                brace_range.active_param = {
+                    index = i,
+                    offset = cursor_pos.col - param.col
+                }
+                break
+            end
+
+            brace_range.active_param = {
+                index = i,
+                offset = #param.text
+            }
+        end
     end
 end
 
@@ -320,7 +349,7 @@ end
 local function reflow()
     local brace_range = find_closest_brace_range({'(',  '[',  '{',  '<'})
     if brace_range then
-        parse_brace_range(brace_range)
+        parse_brace_range_params(brace_range)
         if brace_range.row1 == brace_range.row2 then
             wrap_brace_range(brace_range)
         else
