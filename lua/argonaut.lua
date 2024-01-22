@@ -212,8 +212,6 @@ local function parse_brace_range_params(brace_range)
     end
 
     local brace_range_elements = {}
-    local pad_newline = false
-
     for row = brace_range.row1, brace_range.row2 do
         local line = vim.fn.getline(row)
 
