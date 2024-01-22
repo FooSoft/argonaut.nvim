@@ -212,7 +212,7 @@ local function parse_brace_range_params(brace_range)
     end
 
     local brace_range_elements = {}
-    -- local pad_newline = false
+    local pad_newline = false
 
     for row = brace_range.row1, brace_range.row2 do
         local line = vim.fn.getline(row)
@@ -227,23 +227,23 @@ local function parse_brace_range_params(brace_range)
             col2 = brace_range.col2 - 1
         end
 
-        -- local indenting = true
+        local indenting = true
         for col = col1, col2 do
             local char = line:sub(col, col)
             local padding = false
             assert(#char > 0)
 
-            -- if indenting then
-            --     if char:match('%s') then
-            --         if pad_newline and col == col1 then
-            --             char = ' '
-            --         else
-            --             padding = true
-            --         end
-            --     else
-            --         indenting = false
-            --     end
-            -- end
+            if indenting then
+                if char:match('%s') then
+                    if pad_newline and col == col1 then
+                        char = ' '
+                    else
+                        padding = true
+                    end
+                else
+                    indenting = false
+                end
+            end
 
             table.insert(brace_range_elements, {
                 row = row,
@@ -254,11 +254,11 @@ local function parse_brace_range_params(brace_range)
                 literal = is_string_literal({row = row, col = col}),
             })
 
-            -- if char == ',' then
-            --     pad_newline = true
-            -- else
-            --     pad_newline = false
-            -- end
+            if char == ',' then
+                pad_newline = true
+            else
+                pad_newline = false
+            end
         end
     end
 
