@@ -163,6 +163,9 @@ local function parse_brace_range_params(brace_range)
     local brace_range_param = nil
     local flush_brace_range_param = function()
         if brace_range_param then
+            brace_range_param.col_raw_1 = brace_range_param.col
+            brace_range_param.col_raw_2 = brace_range_param.col + #brace_range_param.text
+
             local left_pad_start, left_pad_end = brace_range_param.text:find('^%s+')
             if left_pad_start and left_pad_end then
                 local pad_length = left_pad_end - left_pad_start + 1
@@ -209,7 +212,7 @@ local function parse_brace_range_params(brace_range)
     end
 
     local brace_range_elements = {}
-    local pad_newline = false
+    -- local pad_newline = false
 
     for row = brace_range.row1, brace_range.row2 do
         local line = vim.fn.getline(row)
@@ -224,10 +227,10 @@ local function parse_brace_range_params(brace_range)
             col2 = brace_range.col2 - 1
         end
 
-        local indenting = true
+        -- local indenting = true
         for col = col1, col2 do
             local char = line:sub(col, col)
-            -- local padding = false
+            local padding = false
             assert(#char > 0)
 
             -- if indenting then
@@ -284,8 +287,8 @@ local function parse_brace_range_params(brace_range)
                 cursor_pos.row == param.row
 
             local contains_col =
-                cursor_pos.col >= param.col and
-                cursor_pos.col <= param.col + #param.text
+                cursor_pos.col >= param.col_raw_1 and
+                cursor_pos.col <= param.col_raw_2
 
             if contains_row and contains_col then
                 param.offset = cursor_pos.col - param.col
