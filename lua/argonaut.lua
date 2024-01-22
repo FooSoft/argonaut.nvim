@@ -227,44 +227,22 @@ local function parse_brace_range_params(brace_range)
             col2 = brace_range.col2 - 1
         end
 
-        local indenting = true
         for col = col1, col2 do
             local char = line:sub(col, col)
-            local padding = false
             assert(#char > 0)
-
-            if indenting then
-                if char:match('%s') then
-                    if pad_newline and col == col1 then
-                        char = ' '
-                    else
-                        padding = true
-                    end
-                else
-                    indenting = false
-                end
-            end
-
             table.insert(brace_range_elements, {
                 row = row,
                 col = col,
                 char = char,
                 brace = brace_range.brace,
-                padding = padding,
                 literal = is_string_literal({row = row, col = col}),
             })
-
-            if char == ',' then
-                pad_newline = true
-            else
-                pad_newline = false
-            end
         end
     end
 
     for _, brace_range_element in ipairs(brace_range_elements) do
-        local append = not brace_range_element.padding
-        if append and not brace_range_element.literal then
+        local append = true
+        if not brace_range_element.literal then
             update_brace_stack(brace_range_element.char)
             if #brace_stack == 0 and brace_range_element.char == ',' then
                 flush_brace_range_param()
