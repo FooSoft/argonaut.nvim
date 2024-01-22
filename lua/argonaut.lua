@@ -227,20 +227,20 @@ local function parse_brace_range_params(brace_range)
         local indenting = true
         for col = col1, col2 do
             local char = line:sub(col, col)
-            local padding = false
+            -- local padding = false
             assert(#char > 0)
 
-            if indenting then
-                if char:match('%s') then
-                    if pad_newline and col == col1 then
-                        char = ' '
-                    else
-                        padding = true
-                    end
-                else
-                    indenting = false
-                end
-            end
+            -- if indenting then
+            --     if char:match('%s') then
+            --         if pad_newline and col == col1 then
+            --             char = ' '
+            --         else
+            --             padding = true
+            --         end
+            --     else
+            --         indenting = false
+            --     end
+            -- end
 
             table.insert(brace_range_elements, {
                 row = row,
@@ -251,11 +251,11 @@ local function parse_brace_range_params(brace_range)
                 literal = is_string_literal({row = row, col = col}),
             })
 
-            if char == ',' then
-                pad_newline = true
-            else
-                pad_newline = false
-            end
+            -- if char == ',' then
+            --     pad_newline = true
+            -- else
+            --     pad_newline = false
+            -- end
         end
     end
 
@@ -288,17 +288,9 @@ local function parse_brace_range_params(brace_range)
                 cursor_pos.col <= param.col + #param.text
 
             if contains_row and contains_col then
-                brace_range.active_param = {
-                    index = i,
-                    offset = cursor_pos.col - param.col
-                }
+                param.offset = cursor_pos.col - param.col
                 break
             end
-
-            brace_range.active_param = {
-                index = i,
-                offset = #param.text
-            }
         end
     end
 end
@@ -308,6 +300,7 @@ local function wrap_brace_range(brace_range)
 
     vim.fn.setline(brace_range.row1, brace_range.indent .. brace_range.prefix)
 
+    local cursor_pos = nil
     local row = brace_range.row1
     for i, param in ipairs(brace_range.params) do
         local on_last_row = i == #brace_range.params
@@ -324,17 +317,35 @@ local function wrap_brace_range(brace_range)
         vim.fn.append(row, line)
         vim.fn.execute(string.format('%d>', row + 1))
 
+        if param.offset then
+            cursor_pos = get_cursor_pos()
+            cursor_pos.col = cursor_pos.col + param.offset
+            cursor_pos.row = row + 1
+        end
+
         row = row + 1
     end
 
     if config.wrap_closing_brace then
         vim.fn.append(row, brace_range.indent .. brace_range.suffix)
     end
+
+    if cursor_pos then
+        vim.fn.setcursorcharpos({cursor_pos.row, cursor_pos.col})
+    end
 end
 
 local function unwrap_brace_range(brace_range)
+    local cursor_pos = nil
     local line = brace_range.indent .. brace_range.prefix
     for i, param in ipairs(brace_range.params) do
+        if param.offset then
+            cursor_pos = {
+                row = brace_range.row1,
+                col = #line + param.offset + 1
+            }
+        end
+
         line = line .. param.text
         if i < #brace_range.params then
             line = line .. ', '
@@ -344,6 +355,10 @@ local function unwrap_brace_range(brace_range)
 
     vim.fn.setline(brace_range.row1, line)
     vim.fn.execute(string.format('%d,%dd_', brace_range.row1 + 1, brace_range.row2))
+
+    if cursor_pos then
+        vim.fn.setcursorcharpos({cursor_pos.row, cursor_pos.col})
+    end
 end
 
 local function reflow()
