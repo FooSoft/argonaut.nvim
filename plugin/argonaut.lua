@@ -1,14 +1,15 @@
 if not vim.g.argonaut then
-    local argonaut = require('argonaut')
-
     local function argonaut_reload()
-        package.loaded.argonaut = nil
-        argonaut = require('argonaut')
+        for name, _ in pairs(package.loaded) do
+            if vim.startswith(name, 'argonaut') then
+                package.loaded[name] = nil
+            end
+        end
     end
 
     local function argonaut_reflow()
         argonaut_reload()
-        argonaut.reflow()
+        require('argonaut').reflow()
     end
 
     vim.api.nvim_create_user_command('ArgonautReload', argonaut_reload, {})

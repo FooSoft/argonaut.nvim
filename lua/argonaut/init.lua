@@ -1,4 +1,4 @@
-local config = require('config')
+local config = require('argonaut.config')
 
 local function setup(opts, filetypes)
     config.set_filetype_opts(opts, filetypes)
