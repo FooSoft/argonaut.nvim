@@ -1,7 +1,7 @@
 local config = require('argonaut.config')
 
 local function setup(opts, filetypes)
-    config.set_filetype_opts(opts, filetypes)
+    config.set(opts, filetypes)
 end
 
 local function get_cursor_pos()
@@ -226,7 +226,7 @@ local function parse_brace_range_params(brace_range)
 end
 
 local function wrap_brace_range(brace_range)
-    local opts = config.get_filetype_opts()
+    local opts = config.get()
 
     vim.fn.setline(brace_range.row1, brace_range.indent .. brace_range.prefix)
 

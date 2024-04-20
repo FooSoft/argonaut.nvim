@@ -14,7 +14,7 @@ local configs = {
     }
 }
 
-local function set_filetype_opts(opts, filetypes)
+local function set(opts, filetypes)
     if opts then
         if type(filetypes) == 'string' then
             filetypes = {filetypes}
@@ -36,7 +36,7 @@ local function set_filetype_opts(opts, filetypes)
     end
 end
 
-local function get_filetype_opts()
+local function get()
     local file_config = configs[vim.bo.filetype]
 
     local config = {}
@@ -54,6 +54,6 @@ local function get_filetype_opts()
 end
 
 return {
-    set_filetype_opts = set_filetype_opts,
-    get_filetype_opts = get_filetype_opts,
+    set = set,
+    get = get,
 }
