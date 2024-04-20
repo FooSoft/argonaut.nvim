@@ -1,56 +1,7 @@
-local argonaut_configs = {
-    default = {
-        line_prefix = '',
-        padded_braces = {},
-        tail_comma = false,
-        tail_comma_braces = {},
-        tail_indent_braces = {},
-        wrap_closing_brace = true,
-        comma_first = false,
-        comma_first_indent = false,
-    },
-    go = {
-        tail_comma = true,
-    }
-}
+local config = require('config')
 
 local function setup(opts, filetypes)
-    if opts then
-        if type(filetypes) == 'string' then
-            filetypes = {filetypes}
-        elseif not filetypes then
-            filetypes = {'default'}
-        end
-
-        for _, filetype in ipairs(filetypes) do
-            local config = argonaut_configs[filetype]
-            if not config then
-                config = {}
-                argonaut_configs[filetype] = config
-            end
-
-            for key, value in pairs(opts) do
-                config[key] = value
-            end
-        end
-    end
-end
-
-local function get_config()
-    local file_config = argonaut_configs[vim.bo.filetype]
-
-    local config = {}
-    for key, value in pairs(argonaut_configs.default) do
-        config[key] = value
-        if file_config then
-            local file_value = file_config[key]
-            if file_value ~= nil then
-                config[key] = file_config[key]
-            end
-        end
-    end
-
-    return config
+    config.set_filetype_opts(opts, filetypes)
 end
 
 local function get_cursor_pos()
@@ -258,7 +209,7 @@ local function parse_brace_range_params(brace_range)
     if #brace_range.params > 0 then
         local cursor_pos = get_cursor_pos()
 
-        for i, param in ipairs(brace_range.params) do
+        for _, param in ipairs(brace_range.params) do
             local contains_row =
                 cursor_pos.row == param.row
 
@@ -275,7 +226,7 @@ local function parse_brace_range_params(brace_range)
 end
 
 local function wrap_brace_range(brace_range)
-    local config = get_config()
+    local opts = config.get_filetype_opts()
 
     vim.fn.setline(brace_range.row1, brace_range.indent .. brace_range.prefix)
 
@@ -285,11 +236,11 @@ local function wrap_brace_range(brace_range)
         local on_last_row = i == #brace_range.params
 
         local line = brace_range.indent .. param.text
-        if config.tail_comma or not on_last_row then
+        if opts.tail_comma or not on_last_row then
             line = line .. ','
         end
 
-        if on_last_row and not config.wrap_closing_brace then
+        if on_last_row and not opts.wrap_closing_brace then
             line = line .. brace_range.suffix
         end
 
@@ -305,7 +256,7 @@ local function wrap_brace_range(brace_range)
         row = row + 1
     end
 
-    if config.wrap_closing_brace then
+    if opts.wrap_closing_brace then
         vim.fn.append(row, brace_range.indent .. brace_range.suffix)
     end
 
