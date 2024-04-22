@@ -139,5 +139,7 @@ function BraceRange.find_all()
         end
     end
 
-    return vim.fn.sort(brace_ranges, brace_range_compare)
+    if #brace_ranges > 0 then
+        return vim.fn.sort(brace_ranges, brace_range_compare)[1]
+    end
 end
