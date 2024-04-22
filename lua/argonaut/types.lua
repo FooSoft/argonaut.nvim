@@ -107,7 +107,7 @@ function BraceRange.find(brace_pair)
     end
 end
 
-function BraceRange.find_all()
+function BraceRange.find_closest()
     local brace_range_compare = function(brace_range_1, brace_range_2)
         local cursor = Cursor:get()
 
