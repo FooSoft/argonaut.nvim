@@ -9,19 +9,19 @@ function Cursor.new(row, col)
     return setmetatable(cursor, {__index = Cursor})
 end
 
-function Cursor.current()
+function Cursor.get()
     local _, row, col, _ = unpack(vim.fn.getpos('.'))
     return Cursor.new(row, col)
 end
 
-function Cursor:is_string_literal()
+function Cursor:is_valid()
+    return self.row > 0 and self.col > 0
+end
+
+function Cursor:is_string()
     local syn_id = vim.fn.synID(self.row, self.col, false)
     local syn_attr = vim.fn.synIDattr(syn_id, 'name')
     return syn_attr:find('String$')
-end
-
-function Cursor:is_valid()
-    return self.row > 0 and self.col > 0
 end
 
 --
@@ -69,8 +69,8 @@ function BracePair:find(backward)
         escaped_pair.close,
         flags,
         function()
-            local cursor = Cursor:current()
-            return cursor:is_string_literal()
+            local cursor = Cursor:get()
+            return cursor:is_string()
         end
     )
 
@@ -105,4 +105,39 @@ function BraceRange.find(brace_pair)
             return BraceRange.new(start_cursor, stop_cursor, brace_pair, {})
         end
     end
+end
+
+function BraceRange.find_all()
+    local brace_range_compare = function(brace_range_1, brace_range_2)
+        local cursor = Cursor:get()
+
+        local row_diff1 = cursor.row - brace_range_1.start_cursor.row
+        local row_diff2 = cursor.row - brace_range_2.start_cursor.row
+        if row_diff1 < row_diff2 then
+            return -1
+        elseif row_diff1 > row_diff2 then
+            return 1
+        end
+
+        local col_diff1 = cursor.col - brace_range_1.start_cursor.col
+        local col_diff2 = cursor.col - brace_range_2.start_cursor.col
+        if col_diff1 < col_diff2 then
+            return -1
+        elseif col_diff1 > col_diff2 then
+            return 1
+        end
+
+        return 0
+    end
+
+    local brace_ranges = {}
+    for _, brace in ipairs({'(', '[', '{', '<'}) do
+        local brace_pair = BracePair.from_brace(brace)
+        local brace_range = BraceRange.find(brace_pair)
+        if brace_range then
+            table.insert(brace_ranges, brace_range)
+        end
+    end
+
+    return vim.fn.sort(brace_ranges, brace_range_compare)
 end
