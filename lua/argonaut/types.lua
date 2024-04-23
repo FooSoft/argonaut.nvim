@@ -1,4 +1,5 @@
 --
+--
 -- Cursor
 --
 
@@ -36,9 +37,9 @@ function BracePair.new(brace_open, brace_close)
 end
 
 function BracePair.from_brace(brace)
-    for _, brace_set in ipairs({{'(', ')'}, {'[', ']'}, {'{', '}'}, {'<', '>'}}) do
-        if brace_set[1] == brace or brace_set[2] == brace then
-            return BracePair.new(brace_set[1], brace_set[2])
+    for _, brace_pair in ipairs({{'(', ')'}, {'[', ']'}, {'{', '}'}, {'<', '>'}}) do
+        if brace_pair[1] == brace or brace_pair[2] == brace then
+            return BracePair.new(brace_pair[1], brace_pair[2])
         end
     end
 end
@@ -78,6 +79,45 @@ function BracePair:find(backward)
     if cursor:is_valid() then
         return cursor
     end
+end
+
+--
+-- BraceStack
+--
+
+BraceStack = {}
+
+function BraceStack.new()
+    local stack = {stack = {}}
+    return setmetatable(stack, {__index = BraceStack})
+end
+
+function BraceStack:update(brace)
+    local brace_pair = BracePair.new(brace)
+    if brace_pair then
+        if brace == brace_pair.close and self:top() == brace_pair.open then
+            self:pop()
+        else
+            self:push(brace)
+        end
+    end
+end
+
+function BraceStack:push(brace)
+    table.insert(self.stack, brace)
+end
+
+function BraceStack:pop()
+    assert(not self:empty())
+    return table.remove(self.stack, #self.stack)
+end
+
+function BraceStack:empty()
+    return #self.stack == 0
+end
+
+function BraceStack:top()
+    return #self.stack[#self.stack]
 end
 
 --
