@@ -14,6 +14,10 @@ function Cursor.get()
     return Cursor.new(row, col)
 end
 
+function Cursor:set()
+    vim.fn.secursorcharpos({self.row, self.col})
+end
+
 function Cursor:is_valid()
     return self.row > 0 and self.col > 0
 end
@@ -203,7 +207,6 @@ function Arg:append(char)
     self.text = self.text .. char
 end
 
-
 --
 -- ArgList
 --
@@ -230,11 +233,6 @@ function ArgList:flush()
 end
 
 function ArgList:update(char, brace_stack, brace_range, cursor)
-    if not char then
-        self:flush()
-        return
-    end
-
     if not cursor:is_string() then
         brace_stack:update(char)
         if brace_stack:empty() and char == ',' then
@@ -279,5 +277,5 @@ function ArgList:parse(brace_range)
         end
     end
 
-    self:update()
+    self:flush()
 end
