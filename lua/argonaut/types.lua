@@ -1,5 +1,4 @@
 --
---
 -- Cursor
 --
 
@@ -182,4 +181,103 @@ function BraceRange.find_closest()
     if #brace_ranges > 0 then
         return vim.fn.sort(brace_ranges, brace_range_compare)[1]
     end
+end
+
+
+--
+-- Arg
+--
+
+Arg = {}
+
+function Arg.new(text, brace_pair)
+    local arg = {
+        text = text,
+        brace_pair = brace_pair,
+    }
+
+    return setmetatable(arg, {__index = Arg})
+end
+
+function Arg:append(char)
+    self.text = self.text .. char
+end
+
+
+--
+-- ArgList
+--
+
+ArgList = {}
+
+function ArgList.new()
+    local arg_list = {
+        indent = '',
+        prefix = '',
+        suffix = '',
+        arg = nil,
+        args = {},
+    }
+
+    return setmetatable(arg_list, {__index = ArgList})
+end
+
+function ArgList:flush()
+    if self.arg then
+        table.insert(self.args, self.arg)
+        self.arg = nil
+    end
+end
+
+function ArgList:update(char, brace_stack, brace_range, cursor)
+    if not char then
+        self:flush()
+        return
+    end
+
+    if not cursor:is_string() then
+        brace_stack:update(char)
+        if brace_stack:empty() and char == ',' then
+            self:flush()
+            return
+        end
+    end
+
+    if self.arg then
+        self.arg.append(char)
+    else
+        self.arg = Arg.new(char, brace_range)
+    end
+end
+
+function ArgList:parse(brace_range)
+    local brace_stack = BraceStack:new()
+
+    local first_line = vim.fn.getline(brace_range.start_cursor.row)
+    self.indent = first_line:match('^(%s*)')
+    self.prefix = first_line:sub(#brace_range.indent + 1, brace_range.start_cursor.col)
+
+    local last_line = vim.fn.getline(brace_range.stop_cursor.row)
+    self.suffix = last_line:sub(brace_range.stop_cursor.col)
+
+    for row = brace_range.start_cursor.row, brace_range.stop_cursor.row do
+        local line = vim.fn.getline(row)
+
+        local start_col = 1
+        if row == brace_range.start_cursor.row then
+            start_col = brace_range.start_cursor.col + 1
+        end
+
+        local stop_col = #line
+        if row == brace_range.stop_cursor.row then
+            stop_col = brace_range.stop_cursor.col - 1
+        end
+
+        for col = start_col, stop_col do
+            local char = line:sub(col, col)
+            self:update(char, brace_stack, brace_range, Cursor.new(row, col))
+        end
+    end
+
+    self:update()
 end
