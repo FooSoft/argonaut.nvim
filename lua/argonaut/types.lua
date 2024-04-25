@@ -9,23 +9,25 @@ function Cursor.new(row, col)
     return setmetatable(cursor, {__index = Cursor})
 end
 
-function Cursor.get()
-    local _, row, col, _ = unpack(vim.fn.getpos('.'))
-    return Cursor.new(row, col)
-end
-
-function Cursor:set()
-    vim.fn.secursorcharpos({self.row, self.col})
-end
-
 function Cursor:is_valid()
     return self.row > 0 and self.col > 0
 end
 
 function Cursor:is_string()
+    assert(self:is_valid())
     local syn_id = vim.fn.synID(self.row, self.col, false)
     local syn_attr = vim.fn.synIDattr(syn_id, 'name')
     return syn_attr:find('String$')
+end
+
+function Cursor.get_current()
+    local _, row, col, _ = unpack(vim.fn.getpos('.'))
+    return Cursor.new(row, col)
+end
+
+function Cursor:set_current()
+    assert(self:is_valid())
+    vim.fn.secursorcharpos({self.row, self.col})
 end
 
 --
@@ -34,13 +36,20 @@ end
 
 BracePair = {}
 
-function BracePair.new(brace_open, brace_close)
-    local brace_pair = {open = brace_open, close = brace_close}
+function BracePair.new(open, close)
+    local brace_pair = {open = open, close = close}
     return setmetatable(brace_pair, {__index = BracePair})
 end
 
 function BracePair.from_brace(brace)
-    for _, brace_pair in ipairs({{'(', ')'}, {'[', ']'}, {'{', '}'}, {'<', '>'}}) do
+    local brace_pairs = {
+        {'(', ')'},
+        {'[', ']'},
+        {'{', '}'},
+        {'<', '>'},
+    }
+
+    for _, brace_pair in ipairs(brace_pairs) do
         if brace_pair[1] == brace or brace_pair[2] == brace then
             return BracePair.new(brace_pair[1], brace_pair[2])
         end
@@ -48,7 +57,7 @@ function BracePair.from_brace(brace)
 end
 
 function BracePair:escaped()
-    local escape_brace = function(brace_raw)
+    local escape_func = function(brace_raw)
         if brace_raw == '[' or brace_raw == ']' then
             return '\\' .. brace_raw
         else
@@ -56,14 +65,25 @@ function BracePair:escaped()
         end
     end
 
-    return BracePair.new(escape_brace(self.open), escape_brace(self.close))
+    return BracePair.new(
+        escape_func(self.open),
+        escape_func(self.close)
+    )
 end
 
-function BracePair:find(backward)
+function BracePair:find_closest(backward, cursor)
+    if not cursor then
+        cursor = Cursor.get_current()
+    end
+
     -- See flags: https://neovim.io/doc/user/builtin.html#search()
     local flags = 'Wcn'
     if backward then
         flags = 'Wbn'
+    end
+
+    local ignore_func = function()
+        return cursor:is_string()
     end
 
     local escaped_pair = self:escaped()
@@ -72,15 +92,12 @@ function BracePair:find(backward)
         '',
         escaped_pair.close,
         flags,
-        function()
-            local cursor = Cursor:get()
-            return cursor:is_string()
-        end
+        ignore_func
     )
 
-    local cursor = Cursor.new(unpack(position))
-    if cursor:is_valid() then
-        return cursor
+    local brace_cursor = Cursor.new(unpack(position))
+    if brace_cursor:is_valid() then
+        return brace_cursor
     end
 end
 
@@ -140,19 +157,19 @@ function BraceRange.new(start_cursor, stop_cursor, brace_pair, brace_params)
     return setmetatable(brace_range, {__index = BraceRange})
 end
 
-function BraceRange.find(brace_pair)
-    local stop_cursor = brace_pair:find(false)
+function BraceRange.find_closest(brace_pair)
+    local stop_cursor = brace_pair:find_closest(false)
     if stop_cursor then
-        local start_cursor = brace_pair:find(true)
+        local start_cursor = brace_pair:find_closest(true)
         if start_cursor then
             return BraceRange.new(start_cursor, stop_cursor, brace_pair, {})
         end
     end
 end
 
-function BraceRange.find_closest()
+function BraceRange.find_closest_any()
     local brace_range_compare = function(brace_range_1, brace_range_2)
-        local cursor = Cursor:get()
+        local cursor = Cursor:get_current()
 
         local row_diff1 = cursor.row - brace_range_1.start_cursor.row
         local row_diff2 = cursor.row - brace_range_2.start_cursor.row
@@ -176,7 +193,7 @@ function BraceRange.find_closest()
     local brace_ranges = {}
     for _, brace in ipairs({'(', '[', '{', '<'}) do
         local brace_pair = BracePair.from_brace(brace)
-        local brace_range = BraceRange.find(brace_pair)
+        local brace_range = BraceRange.find_closest(brace_pair)
         if brace_range then
             table.insert(brace_ranges, brace_range)
         end
@@ -339,7 +356,7 @@ local function unwrap_brace_range(brace_range, arg_list)
 end
 
 local function reflow()
-    local brace_range = BraceRange.find_closest()
+    local brace_range = BraceRange.find_closest_any()
     if brace_range then
         local arg_list = ArgList.new()
         arg_list:parse(brace_range)
