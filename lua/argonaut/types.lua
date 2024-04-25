@@ -224,6 +224,10 @@ function Param:append(char)
     self.text = self.text .. char
 end
 
+function Param:flush()
+   self.text = self.text:match('^%s*(.-)%s*$')
+end
+
 --
 -- ParamList
 --
@@ -241,6 +245,7 @@ end
 
 function ParamList:flush()
     if self.current then
+        self.current:flush()
         table.insert(self.parsed, self.current)
         self.current = nil
     end
