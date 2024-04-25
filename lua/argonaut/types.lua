@@ -330,22 +330,6 @@ function WrapContext:parse()
 end
 
 function WrapContext:wrap()
-    local line = self.indent .. self.prefix
-
-    for i, param in ipairs(self.params.parsed) do
-        line = line .. param.text
-        if i < #self.params.parsed then
-            line = line .. ', '
-        end
-    end
-
-    line = line .. self.suffix
-
-    vim.fn.setline(self.range.start.row, line)
-    vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
-end
-
-function WrapContext:unwrap()
     vim.fn.setline(
         self.range.start.row,
         self.indent .. self.prefix
@@ -392,11 +376,27 @@ function WrapContext:unwrap()
     end
 end
 
+function WrapContext:unwrap()
+    local line = self.indent .. self.prefix
+
+    for i, param in ipairs(self.params.parsed) do
+        line = line .. param.text
+        if i < #self.params.parsed then
+            line = line .. ', '
+        end
+    end
+
+    line = line .. self.suffix
+
+    vim.fn.setline(self.range.start.row, line)
+    vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
+end
+
 function WrapContext:toggle()
     if self.range:is_wrapped() then
-        self:wrap()
-    else
         self:unwrap()
+    else
+        self:wrap()
     end
 end
 
