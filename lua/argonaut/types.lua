@@ -96,7 +96,7 @@ function BraceStack.new()
 end
 
 function BraceStack:update(brace)
-    local brace_pair = BracePair.new(brace)
+    local brace_pair = BracePair.from_brace(brace)
     if brace_pair then
         if brace == brace_pair.close and self:top() == brace_pair.open then
             self:pop()
@@ -141,10 +141,10 @@ function BraceRange.new(start_cursor, stop_cursor, brace_pair, brace_params)
 end
 
 function BraceRange.find(brace_pair)
-    local start_cursor = brace_pair:find(false)
-    if start_cursor then
-        local stop_cursor = brace_pair:find(true)
-        if stop_cursor then
+    local stop_cursor = brace_pair:find(false)
+    if stop_cursor then
+        local start_cursor = brace_pair:find(true)
+        if start_cursor then
             return BraceRange.new(start_cursor, stop_cursor, brace_pair, {})
         end
     end
@@ -183,12 +183,13 @@ function BraceRange.find_closest()
     end
 
     if #brace_ranges > 0 then
-        return vim.fn.sort(brace_ranges, brace_range_compare)[1]
+        vim.fn.sort(brace_ranges, brace_range_compare)
+        return brace_ranges[1]
     end
 end
 
 function BraceRange:is_wrapped()
-    return self.start_cursor.row ~= self.stop_cursor.row
+    return self.start_cursor.row < self.stop_cursor.row
 end
 
 --
@@ -245,7 +246,7 @@ function ArgList:update(char, brace_stack, brace_range, cursor)
     end
 
     if self.arg then
-        self.arg.append(char)
+        self.arg:append(char)
     else
         self.arg = Arg.new(char, brace_range)
     end
@@ -256,7 +257,7 @@ function ArgList:parse(brace_range)
 
     local first_line = vim.fn.getline(brace_range.start_cursor.row)
     self.indent = first_line:match('^(%s*)')
-    self.prefix = first_line:sub(#brace_range.indent + 1, brace_range.start_cursor.col)
+    self.prefix = first_line:sub(#self.indent + 1, brace_range.start_cursor.col)
 
     local last_line = vim.fn.getline(brace_range.stop_cursor.row)
     self.suffix = last_line:sub(brace_range.stop_cursor.col)
@@ -291,9 +292,9 @@ local function wrap_brace_range(brace_range, arg_list)
     for _, arg in ipairs(arg_list.args) do
         -- local on_last_row = i == #brace_range.params
 
-        local line = brace_range.indent .. arg.text
+        local line = arg_list.indent .. arg.text
         -- if opts.tail_comma or not on_last_row then
-        --     line = line .. ','
+            line = line .. ','
         -- end
 
         -- if on_last_row and not opts.wrap_closing_brace then
@@ -324,29 +325,33 @@ local function wrap_brace_range(brace_range, arg_list)
 end
 
 local function unwrap_brace_range(brace_range, arg_list)
-    local line = brace_range.indent .. brace_range.prefix
-    for i, param in ipairs(brace_range.params) do
-        line = line .. param.text
-        if i < #brace_range.params then
+    local line = arg_list.indent .. arg_list.prefix
+    for i, arg in ipairs(arg_list.args) do
+        line = line .. arg.text
+        if i < #arg_list.args then
             line = line .. ', '
         end
     end
-    line = line .. brace_range.suffix
+    line = line .. arg_list.suffix
 
     vim.fn.setline(brace_range.start_cursor.row, line)
-    vim.fn.execute(string.format('%d,%dd_', brace_range.start_cursor.row + 1, brace_range.stop_cursor.rowrow2))
+    vim.fn.execute(string.format('%d,%dd_', brace_range.start_cursor.row + 1, brace_range.stop_cursor.row))
 end
 
 local function reflow()
     local brace_range = BraceRange.find_closest()
     if brace_range then
         local arg_list = ArgList.new()
-        arg_list.parse(brace_range)
+        arg_list:parse(brace_range)
 
-        if brace_range.is_wrapped() then
+        if brace_range:is_wrapped() then
             unwrap_brace_range(brace_range, arg_list)
         else
             wrap_brace_range(brace_range, arg_list)
         end
     end
 end
+
+return {
+    reflow = reflow
+}
