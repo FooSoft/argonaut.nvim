@@ -297,9 +297,9 @@ end
 
 local WrapContext = {}
 
-function WrapContext.new(opts)
+function WrapContext.new(opt)
     local wrap_context = {
-        opts = opts,
+        opt = opt,
         indent = '',
         prefix = '',
         suffix = '',
@@ -351,39 +351,44 @@ function WrapContext:unwrap()
         self.indent .. self.prefix
     )
 
-    local cursor = nil
-
     local row = self.range.start.row
     for i, param in ipairs(self.params.parsed) do
-        local on_last_param = i == #self.params.parsed
+        local first_param = i == 1
+        local last_param = i == #self.params.parsed
 
-        local line = self.indent .. param.text
-        if self.opts.tail_comma or not on_last_param then
-            line = line .. ','
+        local line = ''
+        if self.opt.comma_first then
+            line = line .. self.indent .. self.opt.line_prefix
+            if not first_param then
+                line = line .. ', '
+            end
+            line = line .. param.text
+        else
+            line = line .. self.indent .. self.opt.line_prefix .. param.text
+            if not last_param or self.opt.tail_comma then
+                line = line .. ','
+            end
         end
 
-        if on_last_param and not self.opts.wrap_closing_brace then
+        if last_param and not self.opt.wrap_closing_brace then
             line = line .. self.suffix
         end
 
         vim.fn.append(row, line)
         vim.fn.execute(string.format('%d>', row + 1))
 
-        -- if param.offset then
-        --     cursor = cursor
-        --     cursor.col = cursor.col + param.offset
-        --     cursor.row = row + 1
-        -- end
+        if first_param and self.opt.comma_first_indent then
+            local prev_shiftwidth = vim.o.shiftwidth
+            vim.o.shiftwidth = prev_shiftwidth - 2
+            vim.fn.execute(string.format('%d>', row + 1))
+            vim.o.shiftwidth = prev_shiftwidth
+        end
 
         row = row + 1
     end
 
-    if self.opts.wrap_closing_brace then
+    if self.opt.wrap_closing_brace then
         vim.fn.append(row, self.indent .. self.suffix)
-    end
-
-    if cursor then
-        cursor:set_current()
     end
 end
 
