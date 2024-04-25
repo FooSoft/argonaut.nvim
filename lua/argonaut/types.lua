@@ -354,41 +354,40 @@ function WrapContext:unwrap()
         self.indent .. self.prefix
     )
 
-    -- local cursor_pos = nil
+    local cursor = nil
+
     local row = self.brace_range.start_cursor.row
-    for _, arg in ipairs(self.arg_list.args) do
-        -- local on_last_row = i == #brace_range.params
+    for i, arg in ipairs(self.arg_list.args) do
+        local on_last_arg = i == #self.arg_list.args
 
         local line = self.indent .. arg.text
-        -- if opts.tail_comma or not on_last_row then
+        if self.opts.tail_comma or not on_last_arg then
             line = line .. ','
-        -- end
+        end
 
-        -- if on_last_row and not opts.wrap_closing_brace then
-        --     line = line .. brace_range.suffix
-        -- end
+        if on_last_arg and not self.opts.wrap_closing_brace then
+            line = line .. self.suffix
+        end
 
         vim.fn.append(row, line)
         vim.fn.execute(string.format('%d>', row + 1))
 
         -- if param.offset then
-        --     cursor_pos = get_cursor_pos()
-        --     cursor_pos.col = cursor_pos.col + param.offset
-        --     cursor_pos.row = row + 1
+        --     cursor = cursor
+        --     cursor.col = cursor.col + param.offset
+        --     cursor.row = row + 1
         -- end
 
         row = row + 1
     end
 
-    vim.fn.append(row, self.indent .. self.suffix)
+    if self.opts.wrap_closing_brace then
+        vim.fn.append(row, self.indent .. self.suffix)
+    end
 
-    -- if opts.wrap_closing_brace then
-    --     vim.fn.append(row, brace_range.indent .. brace_range.suffix)
-    -- end
-    --
-    -- if cursor_pos then
-    --     vim.fn.setcursorcharpos({cursor_pos.row, cursor_pos.col})
-    -- end
+    if cursor then
+        cursor:set_current()
+    end
 end
 
 function WrapContext:toggle()
