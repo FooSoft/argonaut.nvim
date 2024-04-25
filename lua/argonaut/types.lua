@@ -236,9 +236,6 @@ local ArgList = {}
 
 function ArgList.new()
     local arg_list = {
-        indent = '',
-        prefix = '',
-        suffix = '',
         arg = nil,
         args = {},
     }
@@ -272,13 +269,6 @@ end
 function ArgList:parse(brace_range)
     local brace_stack = BraceStack:new()
 
-    local first_line = vim.fn.getline(brace_range.start_cursor.row)
-    self.indent = first_line:match('^(%s*)')
-    self.prefix = first_line:sub(#self.indent + 1, brace_range.start_cursor.col)
-
-    local last_line = vim.fn.getline(brace_range.stop_cursor.row)
-    self.suffix = last_line:sub(brace_range.stop_cursor.col)
-
     for row = brace_range.start_cursor.row, brace_range.stop_cursor.row do
         local line = vim.fn.getline(row)
 
@@ -293,15 +283,122 @@ function ArgList:parse(brace_range)
         end
 
         for col = start_col, stop_col do
-            local char = line:sub(col, col)
-            self:update(char, brace_stack, brace_range, Cursor.new(row, col))
+            self:update(line:sub(col, col), brace_stack, brace_range, Cursor.new(row, col))
         end
     end
 
     self:flush()
 end
 
+--
+-- WrapContext
+--
+
+local WrapContext = {}
+
+function WrapContext.new(opts)
+    local wrap_context = {
+        opts = opts,
+        indent = '',
+        prefix = '',
+        suffix = '',
+        brace_range = nil,
+        arg_list = nil,
+    }
+
+    return setmetatable(wrap_context, {__index = WrapContext})
+end
+
+function WrapContext:parse()
+    self.brace_range = BraceRange.find_closest_any()
+    if not self.brace_range then
+        return false
+    end
+
+    local first_line = vim.fn.getline(self.brace_range.start_cursor.row)
+    self.indent = first_line:match('^(%s*)')
+    self.prefix = first_line:sub(#self.indent + 1, self.brace_range.start_cursor.col)
+
+    local last_line = vim.fn.getline(self.brace_range.stop_cursor.row)
+    self.suffix = last_line:sub(self.brace_range.stop_cursor.col)
+
+    self.arg_list = ArgList.new()
+    self.arg_list:parse(self.brace_range)
+
+    return true
+end
+
+function WrapContext:wrap()
+    local line = self.indent .. self.prefix
+
+    for i, arg in ipairs(self.arg_list.args) do
+        line = line .. arg.text
+        if i < #self.arg_list.args then
+            line = line .. ', '
+        end
+    end
+
+    line = line .. self.suffix
+
+    vim.fn.setline(self.brace_range.start_cursor.row, line)
+    vim.fn.execute(string.format(
+        '%d,%dd_',
+        self.brace_range.start_cursor.row + 1,
+        self.brace_range.stop_cursor.row
+    ))
+end
+
+function WrapContext:unwrap()
+    vim.fn.setline(
+        self.brace_range.start_cursor.row,
+        self.indent .. self.prefix
+    )
+
+    -- local cursor_pos = nil
+    local row = self.brace_range.start_cursor.row
+    for _, arg in ipairs(self.arg_list.args) do
+        -- local on_last_row = i == #brace_range.params
+
+        local line = self.indent .. arg.text
+        -- if opts.tail_comma or not on_last_row then
+            line = line .. ','
+        -- end
+
+        -- if on_last_row and not opts.wrap_closing_brace then
+        --     line = line .. brace_range.suffix
+        -- end
+
+        vim.fn.append(row, line)
+        vim.fn.execute(string.format('%d>', row + 1))
+
+        -- if param.offset then
+        --     cursor_pos = get_cursor_pos()
+        --     cursor_pos.col = cursor_pos.col + param.offset
+        --     cursor_pos.row = row + 1
+        -- end
+
+        row = row + 1
+    end
+
+    vim.fn.append(row, self.indent .. self.suffix)
+
+    -- if opts.wrap_closing_brace then
+    --     vim.fn.append(row, brace_range.indent .. brace_range.suffix)
+    -- end
+    --
+    -- if cursor_pos then
+    --     vim.fn.setcursorcharpos({cursor_pos.row, cursor_pos.col})
+    -- end
+end
+
+function WrapContext:toggle()
+    if self.brace_range:is_wrapped() then
+        self:wrap()
+    else
+        self:unwrap()
+    end
+end
+
 return {
-    BraceRange = BraceRange,
-    ArgList = ArgList,
+    WrapContext = WrapContext,
 }
