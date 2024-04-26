@@ -224,6 +224,7 @@ function Param.new(text, pair)
     local param = {
         text = text,
         pair = pair,
+        offset = nil,
     }
 
     return setmetatable(param, Param.mt)
@@ -233,8 +234,12 @@ function Param:append(char)
     self.text = self.text .. char
 end
 
-function Param:flush()
-   self.text = self.text:match('^%s*(.-)%s*$')
+function Param:capture()
+    self.offset = #self.text
+end
+
+function Param:stripped()
+    return self.text:match('^%s*(.-)%s*$')
 end
 
 --
@@ -255,7 +260,6 @@ end
 
 function ParamList:flush()
     if self.current then
-        self.current:flush()
         table.insert(self.parsed, self.current)
         self.current = nil
     end
@@ -274,6 +278,10 @@ function ParamList:update(char, brace_stack, range, cursor)
         self.current:append(char)
     else
         self.current = Param.new(char, range)
+    end
+
+    if cursor == Cursor.get_current() then
+        self.current:capture()
     end
 end
 
@@ -357,9 +365,9 @@ function WrapContext:wrap()
             if not first_param then
                 line = line .. ', '
             end
-            line = line .. param.text
+            line = line .. param:stripped()
         else
-            line = line .. self.indent .. self.opt.line_prefix .. param.text
+            line = line .. self.indent .. self.opt.line_prefix .. param:stripped()
             if not last_param or self.opt.tail_comma then
                 line = line .. ','
             end
@@ -391,7 +399,7 @@ function WrapContext:unwrap()
     local line = self.indent .. self.prefix
 
     for i, param in ipairs(self.params.parsed) do
-        line = line .. param.text
+        line = line .. param:stripped()
         if i < #self.params.parsed then
             line = line .. ', '
         end
