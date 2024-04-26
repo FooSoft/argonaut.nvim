@@ -28,7 +28,7 @@ end
 
 function Cursor:set_current()
     assert(self:is_valid())
-    vim.fn.secursorcharpos({self.row, self.col})
+    vim.fn.setcursorcharpos({self.row, self.col})
 end
 
 function Cursor.mt.__eq(self, other)
@@ -224,7 +224,7 @@ function Param.new(text, pair)
     local param = {
         text = text,
         pair = pair,
-        offset = nil,
+        active = false,
     }
 
     return setmetatable(param, Param.mt)
@@ -234,12 +234,12 @@ function Param:append(char)
     self.text = self.text .. char
 end
 
-function Param:capture()
-    self.offset = #self.text
+function Param:activate()
+    self.active = true
 end
 
-function Param:stripped()
-    return self.text:match('^%s*(.-)%s*$')
+function Param:flush()
+    self.text = self.text:match('^%s*(.-)%s*$')
 end
 
 --
@@ -260,6 +260,7 @@ end
 
 function ParamList:flush()
     if self.current then
+        self.current:flush()
         table.insert(self.parsed, self.current)
         self.current = nil
     end
@@ -281,7 +282,7 @@ function ParamList:update(char, brace_stack, range, cursor)
     end
 
     if cursor == Cursor.get_current() then
-        self.current:capture()
+        self.current:activate()
     end
 end
 
@@ -349,12 +350,11 @@ function WrapContext:parse()
 end
 
 function WrapContext:wrap()
-    vim.fn.setline(
-        self.range.start.row,
-        self.indent .. self.prefix
-    )
+    vim.fn.setline(self.range.start.row, self.indent .. self.prefix)
 
+    local cursor = nil
     local row = self.range.start.row
+
     for i, param in ipairs(self.params.parsed) do
         local first_param = i == 1
         local last_param = i == #self.params.parsed
@@ -365,9 +365,9 @@ function WrapContext:wrap()
             if not first_param then
                 line = line .. ', '
             end
-            line = line .. param:stripped()
+            line = line .. param.text
         else
-            line = line .. self.indent .. self.opt.line_prefix .. param:stripped()
+            line = line .. self.indent .. self.opt.line_prefix .. param.text
             if not last_param or self.opt.tail_comma then
                 line = line .. ','
             end
@@ -378,28 +378,41 @@ function WrapContext:wrap()
         end
 
         vim.fn.append(row, line)
-        vim.fn.execute(string.format('%d>', row + 1))
+        row = row + 1
+        vim.fn.execute(string.format('%d>', row))
 
         if first_param and self.opt.comma_first_indent then
             local prev_shiftwidth = vim.o.shiftwidth
             vim.o.shiftwidth = prev_shiftwidth - 2
-            vim.fn.execute(string.format('%d>', row + 1))
+            vim.fn.execute(string.format('%d>', row))
             vim.o.shiftwidth = prev_shiftwidth
         end
 
-        row = row + 1
+        if param.active then
+            cursor = Cursor.get_current()
+            cursor.col = #vim.fn.getline(cursor.row):match('^%s*') + 1
+        end
     end
 
     if self.opt.wrap_closing_brace then
         vim.fn.append(row, self.indent .. self.suffix)
     end
+
+    if cursor then
+        cursor:set_current()
+    end
 end
 
 function WrapContext:unwrap()
+    local cursor = nil
     local line = self.indent .. self.prefix
 
     for i, param in ipairs(self.params.parsed) do
-        line = line .. param:stripped()
+        if param.active then
+            cursor = Cursor.new(0, #line + 1)
+        end
+
+        line = line .. param.text
         if i < #self.params.parsed then
             line = line .. ', '
         end
@@ -409,6 +422,16 @@ function WrapContext:unwrap()
 
     vim.fn.setline(self.range.start.row, line)
     vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
+
+    for _, param in ipairs(self.params.parsed) do
+        if param.active then
+            cursor.row = Cursor:get_current().row - 1
+        end
+    end
+
+    if cursor then
+        cursor:set_current()
+    end
 end
 
 function WrapContext:toggle()
