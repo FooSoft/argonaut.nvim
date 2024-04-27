@@ -3,11 +3,11 @@
 --
 
 local Cursor = {}
-Cursor.mt = {__index = Cursor}
+Cursor.__index = Cursor
 
 function Cursor.new(row, col)
     local cursor = {row = row, col = col}
-    return setmetatable(cursor, Cursor.mt)
+    return setmetatable(cursor, Cursor)
 end
 
 function Cursor:is_valid()
@@ -31,7 +31,7 @@ function Cursor:set_current()
     vim.fn.setcursorcharpos({self.row, self.col})
 end
 
-function Cursor.mt.__eq(self, other)
+function Cursor.__eq(self, other)
     return self.row == other.row and self.col == other.col
 end
 
@@ -40,11 +40,11 @@ end
 --
 
 local BracePair = {}
-BracePair.mt = {__index = BracePair}
+BracePair.__index = BracePair
 
 function BracePair.new(open, close)
     local pair = {open = open, close = close}
-    return setmetatable(pair, BracePair.mt)
+    return setmetatable(pair, BracePair)
 end
 
 function BracePair.from_brace(brace)
@@ -109,11 +109,11 @@ end
 --
 
 local BraceStack = {}
-BraceStack.mt = {__index = BraceStack}
+BraceStack.__index = BraceStack
 
 function BraceStack.new()
     local stack = {stack = {}}
-    return setmetatable(stack, BraceStack.mt)
+    return setmetatable(stack, BraceStack)
 end
 
 function BraceStack:update(brace)
@@ -149,7 +149,7 @@ end
 --
 
 local BraceRange = {}
-BraceRange.mt = {__index = BraceRange}
+BraceRange.__index = BraceRange
 
 function BraceRange.new(start, stop, pair)
     local range = {
@@ -158,7 +158,7 @@ function BraceRange.new(start, stop, pair)
         pair = pair,
     }
 
-    return setmetatable(range, BraceRange.mt)
+    return setmetatable(range, BraceRange)
 end
 
 function BraceRange.find_closest(pair)
@@ -218,7 +218,7 @@ end
 --
 
 local Param = {}
-Param.mt = {__index = Param}
+Param.__index = Param
 
 function Param.new(text, pair)
     local param = {
@@ -227,7 +227,7 @@ function Param.new(text, pair)
         active = false,
     }
 
-    return setmetatable(param, Param.mt)
+    return setmetatable(param, Param)
 end
 
 function Param:append(char)
@@ -248,7 +248,7 @@ end
 --
 
 local ParamList = {}
-ParamList.mt = {__index = ParamList}
+ParamList.__index = ParamList
 
 function ParamList.new()
     local params = {
@@ -256,7 +256,7 @@ function ParamList.new()
         parsed = {},
     }
 
-    return setmetatable(params, ParamList.mt)
+    return setmetatable(params, ParamList)
 end
 
 function ParamList:flush()
@@ -317,7 +317,7 @@ end
 --
 
 local WrapContext = {}
-WrapContext.mt = {__index = WrapContext}
+WrapContext.__index = WrapContext
 
 function WrapContext.new(opt)
     local wrap_context = {
@@ -329,7 +329,7 @@ function WrapContext.new(opt)
         params = nil,
     }
 
-    return setmetatable(wrap_context, WrapContext.mt)
+    return setmetatable(wrap_context, WrapContext)
 end
 
 function WrapContext:parse()
