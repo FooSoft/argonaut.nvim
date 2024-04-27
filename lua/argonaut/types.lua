@@ -81,7 +81,7 @@ function BracePair:find_closest(backward)
     -- See flags: https://neovim.io/doc/user/builtin.html#search()
     local flags = 'Wcn'
     if backward then
-        flags = 'Wbn'
+        flags = 'Wcnb'
     end
 
     local ignore_func = function()
@@ -172,28 +172,6 @@ function BraceRange.find_closest(pair)
 end
 
 function BraceRange.find_closest_any()
-    local range_compare = function(range_1, range_2)
-        local cursor = Cursor:get_current()
-
-        local row_diff1 = cursor.row - range_1.start.row
-        local row_diff2 = cursor.row - range_2.start.row
-        if row_diff1 < row_diff2 then
-            return -1
-        elseif row_diff1 > row_diff2 then
-            return 1
-        end
-
-        local col_diff1 = cursor.col - range_1.start.col
-        local col_diff2 = cursor.col - range_2.start.col
-        if col_diff1 < col_diff2 then
-            return -1
-        elseif col_diff1 > col_diff2 then
-            return 1
-        end
-
-        return 0
-    end
-
     local ranges = {}
     for _, brace in ipairs({'(', '[', '{', '<'}) do
         local pair = BracePair.from_brace(brace)
@@ -204,13 +182,34 @@ function BraceRange.find_closest_any()
     end
 
     if #ranges > 0 then
-        vim.fn.sort(ranges, range_compare)
+        table.sort(ranges)
         return ranges[1]
     end
 end
 
 function BraceRange:is_wrapped()
     return self.start.row < self.stop.row
+end
+
+function BraceRange.__lt(range_1, range_2)
+    local cursor = Cursor:get_current()
+
+    local row_diff1 = range_1.start.row - cursor.row
+    local col_diff1 = range_1.start.col - cursor.col
+    local row_diff2 = range_2.start.row - cursor.row
+    local col_diff2 = range_2.start.col - cursor.col
+
+    if row_diff1 < row_diff2 then
+        return false
+    elseif row_diff1 > row_diff2 then
+        return true
+    elseif col_diff1 < col_diff2 then
+        return false
+    elseif col_diff1 > col_diff2 then
+        return true
+    else
+        return true
+    end
 end
 
 --
@@ -245,7 +244,7 @@ end
 function Param:flush()
     if self.offset then
         self.offset = math.min(self.offset, #self.text:match('(.-)%s*$'))
-        self.offset = self.offset - #self.text:match('^%s*')
+        self.offset = math.max(self.offset - #self.text:match('^%s*'), 1)
     end
 
     self.text = self.text:match('^%s*(.-)%s*$')
