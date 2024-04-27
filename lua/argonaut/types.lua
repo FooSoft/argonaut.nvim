@@ -370,7 +370,7 @@ function WrapContext:wrap()
         local last_param = i == #self.params.parsed
 
         local line = ''
-        if self.opt.comma_first then
+        if self.opt.comma_prefix then
             line = line .. self.indent .. self.opt.line_prefix
             if not first_param then
                 line = line .. ', '
@@ -378,12 +378,12 @@ function WrapContext:wrap()
             line = line .. param.text
         else
             line = line .. self.indent .. self.opt.line_prefix .. param.text
-            if not last_param or self.opt.tail_comma then
+            if not last_param or self.opt.comma_last then
                 line = line .. ','
             end
         end
 
-        if last_param and not self.opt.wrap_closing_brace then
+        if last_param and not self.opt.brace_last_wrap then
             line = line .. self.suffix
         end
 
@@ -391,7 +391,7 @@ function WrapContext:wrap()
         row = row + 1
         vim.fn.execute(string.format('%d>', row))
 
-        if first_param and self.opt.comma_first_indent then
+        if first_param and self.opt.comma_prefix_indent then
             local prev_shiftwidth = vim.o.shiftwidth
             vim.o.shiftwidth = prev_shiftwidth - 2
             vim.fn.execute(string.format('%d>', row))
@@ -404,8 +404,11 @@ function WrapContext:wrap()
         end
     end
 
-    if self.opt.wrap_closing_brace then
+    if self.opt.brace_last_wrap then
         vim.fn.append(row, self.indent .. self.suffix)
+        if self.opt.brace_last_indent then
+            vim.fn.execute(string.format('%d>', row + 1))
+        end
     end
 
     if cursor then

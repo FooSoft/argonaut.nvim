@@ -1,16 +1,15 @@
 local configs = {
     default = {
+        brace_last_indent = false,
+        brace_last_wrap = true,
+        brace_pad = true,
+        comma_last = false,
+        comma_prefix = false,
+        comma_prefix_indent = false,
         line_prefix = '',
-        padded_braces = {},
-        tail_comma = false,
-        tail_comma_braces = {},
-        tail_indent_braces = {},
-        wrap_closing_brace = true,
-        comma_first = false,
-        comma_first_indent = false,
     },
     go = {
-        tail_comma = true,
+        comma_last = true,
     }
 }
 
