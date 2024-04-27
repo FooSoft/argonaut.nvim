@@ -224,7 +224,7 @@ function Param.new(text, pair)
     local param = {
         text = text,
         pair = pair,
-        active = false,
+        offset = nil,
     }
 
     return setmetatable(param, Param)
@@ -235,10 +235,19 @@ function Param:append(char)
 end
 
 function Param:activate()
-    self.active = true
+    self.offset = #self.text
+end
+
+function Param:is_active()
+    return self.offset ~= nil
 end
 
 function Param:flush()
+    if self.offset then
+        self.offset = math.min(self.offset, #self.text:match('(.-)%s*$'))
+        self.offset = self.offset - #self.text:match('^%s*')
+    end
+
     self.text = self.text:match('^%s*(.-)%s*$')
     return #self.text > 0
 end
@@ -390,9 +399,9 @@ function WrapContext:wrap()
             vim.o.shiftwidth = prev_shiftwidth
         end
 
-        if param.active then
+        if param:is_active() then
             cursor = Cursor.get_current()
-            cursor.col = #vim.fn.getline(cursor.row):match('^%s*') + 1
+            cursor.col = #vim.fn.getline(cursor.row):match('^%s*') + param.offset
         end
     end
 
@@ -410,8 +419,8 @@ function WrapContext:unwrap()
     local line = self.indent .. self.prefix
 
     for i, param in ipairs(self.params.parsed) do
-        if param.active then
-            cursor = Cursor.new(0, #line + 1)
+        if param:is_active() then
+            cursor = Cursor.new(0, #line + param.offset)
         end
 
         line = line .. param.text
@@ -426,7 +435,7 @@ function WrapContext:unwrap()
     vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
 
     for _, param in ipairs(self.params.parsed) do
-        if param.active then
+        if param:is_active() then
             cursor.row = Cursor:get_current().row - 1
         end
     end
