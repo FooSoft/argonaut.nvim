@@ -431,9 +431,7 @@ function WrapContext:unwrap(opt)
     local cursor = nil
     for i, param in ipairs(self.params.parsed) do
         if param:is_active() then
-            cursor = Cursor.get_current()
-            cursor.row = cursor.row - 1
-            cursor.col = #line + param.offset
+            cursor = Cursor.new(0, #line + param.offset)
         end
 
         line = line .. param.text
@@ -446,6 +444,12 @@ function WrapContext:unwrap(opt)
 
     vim.fn.setline(self.range.start.row, line)
     vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
+
+    for _, param in ipairs(self.params.parsed) do
+        if param:is_active() then
+            cursor.row = Cursor:get_current().row - 1
+        end
+    end
 
     if cursor then
         cursor:set_current()
