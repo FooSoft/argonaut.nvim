@@ -262,8 +262,9 @@ end
 local ParamList = {}
 ParamList.__index = ParamList
 
-function ParamList.new()
+function ParamList.new(range)
     local params = {
+        range = range,
         current = nil,
         parsed = {},
     }
@@ -280,7 +281,7 @@ function ParamList:flush()
     end
 end
 
-function ParamList:update(char, brace_stack, range, cursor)
+function ParamList:update(char, brace_stack, cursor)
     if not cursor:is_string() then
         brace_stack:update(char)
         if brace_stack:empty() and char == ',' then
@@ -292,7 +293,7 @@ function ParamList:update(char, brace_stack, range, cursor)
     if self.current then
         self.current:append(char)
     else
-        self.current = Param.new(char, range)
+        self.current = Param.new(char, self.range)
     end
 
     if cursor == Cursor.get_current() then
@@ -300,24 +301,24 @@ function ParamList:update(char, brace_stack, range, cursor)
     end
 end
 
-function ParamList:parse(range)
+function ParamList:parse()
     local brace_stack = BraceStack:new()
 
-    for row = range.start.row, range.stop.row do
+    for row = self.range.start.row, self.range.stop.row do
         local line = vim.fn.getline(row)
 
         local start_col = 1
-        if row == range.start.row then
-            start_col = range.start.col + 1
+        if row == self.range.start.row then
+            start_col = self.range.start.col + 1
         end
 
         local stop_col = #line
-        if row == range.stop.row then
-            stop_col = range.stop.col - 1
+        if row == self.range.stop.row then
+            stop_col = self.range.stop.col - 1
         end
 
         for col = start_col, stop_col do
-            self:update(line:sub(col, col), brace_stack, range, Cursor.new(row, col))
+            self:update(line:sub(col, col), brace_stack, Cursor.new(row, col))
         end
     end
 
@@ -357,8 +358,8 @@ function WrapContext:parse()
     local last_line = vim.fn.getline(self.range.stop.row)
     self.suffix = last_line:sub(self.range.stop.col)
 
-    self.params = ParamList.new()
-    self.params:parse(self.range)
+    self.params = ParamList.new(self.range)
+    self.params:parse()
 
     return true
 end
