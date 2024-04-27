@@ -141,7 +141,7 @@ function BraceStack:empty()
 end
 
 function BraceStack:top()
-    return #self.stack[#self.stack]
+    return self.stack[#self.stack]
 end
 
 --
@@ -240,6 +240,7 @@ end
 
 function Param:flush()
     self.text = self.text:match('^%s*(.-)%s*$')
+    return #self.text > 0
 end
 
 --
@@ -260,8 +261,9 @@ end
 
 function ParamList:flush()
     if self.current then
-        self.current:flush()
-        table.insert(self.parsed, self.current)
+        if self.current:flush() then
+            table.insert(self.parsed, self.current)
+        end
         self.current = nil
     end
 end
