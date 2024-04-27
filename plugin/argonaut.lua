@@ -8,7 +8,6 @@ if not vim.g.argonaut then
     end
 
     local function argonaut_reflow()
-        argonaut_reload()
         require('argonaut').reflow()
     end
 
