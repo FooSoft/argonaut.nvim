@@ -2,7 +2,7 @@ local configs = {
     default = {
         brace_last_indent = false,
         brace_last_wrap = true,
-        brace_pad = true,
+        brace_pad = false,
         comma_last = false,
         comma_prefix = false,
         comma_prefix_indent = false,
@@ -10,7 +10,7 @@ local configs = {
     },
     go = {
         comma_last = true,
-    }
+    },
 }
 
 local function set(opts, filetypes)

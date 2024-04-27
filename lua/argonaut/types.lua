@@ -104,6 +104,10 @@ function BracePair:find_closest(backward)
     end
 end
 
+function BracePair.__eq(self, other)
+    return self.open == other.open and self.close == other.close
+end
+
 --
 -- BraceStack
 --
@@ -359,7 +363,7 @@ function WrapContext:parse()
     return true
 end
 
-function WrapContext:wrap()
+function WrapContext:wrap(opt)
     vim.fn.setline(self.range.start.row, self.indent .. self.prefix)
 
     local cursor = nil
@@ -370,20 +374,20 @@ function WrapContext:wrap()
         local last_param = i == #self.params.parsed
 
         local line = ''
-        if self.opt.comma_prefix then
-            line = line .. self.indent .. self.opt.line_prefix
+        if opt.comma_prefix then
+            line = line .. self.indent .. opt.line_prefix
             if not first_param then
                 line = line .. ', '
             end
             line = line .. param.text
         else
-            line = line .. self.indent .. self.opt.line_prefix .. param.text
-            if not last_param or self.opt.comma_last then
+            line = line .. self.indent .. opt.line_prefix .. param.text
+            if not last_param or opt.comma_last then
                 line = line .. ','
             end
         end
 
-        if last_param and not self.opt.brace_last_wrap then
+        if last_param and not opt.brace_last_wrap then
             line = line .. self.suffix
         end
 
@@ -391,7 +395,7 @@ function WrapContext:wrap()
         row = row + 1
         vim.fn.execute(string.format('%d>', row))
 
-        if first_param and self.opt.comma_prefix_indent then
+        if first_param and opt.comma_prefix_indent then
             local prev_shiftwidth = vim.o.shiftwidth
             vim.o.shiftwidth = prev_shiftwidth - 2
             vim.fn.execute(string.format('%d>', row))
@@ -404,9 +408,9 @@ function WrapContext:wrap()
         end
     end
 
-    if self.opt.brace_last_wrap then
+    if opt.brace_last_wrap then
         vim.fn.append(row, self.indent .. self.suffix)
-        if self.opt.brace_last_indent then
+        if opt.brace_last_indent then
             vim.fn.execute(string.format('%d>', row + 1))
         end
     end
@@ -416,10 +420,15 @@ function WrapContext:wrap()
     end
 end
 
-function WrapContext:unwrap()
-    local cursor = nil
-    local line = self.indent .. self.prefix
+function WrapContext:unwrap(opt)
+    local padding = ''
+    if opt.brace_pad then
+        padding = ' '
+    end
 
+    local line = self.indent .. self.prefix .. padding
+
+    local cursor = nil
     for i, param in ipairs(self.params.parsed) do
         if param:is_active() then
             cursor = Cursor.new(0, #line + param.offset)
@@ -431,7 +440,7 @@ function WrapContext:unwrap()
         end
     end
 
-    line = line .. self.suffix
+    line = line .. padding .. self.suffix
 
     vim.fn.setline(self.range.start.row, line)
     vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
@@ -448,11 +457,31 @@ function WrapContext:unwrap()
 end
 
 function WrapContext:toggle()
+    local opt = self:specialize_opt()
     if self.range:is_wrapped() then
-        self:unwrap()
+        self:unwrap(opt)
     else
-        self:wrap()
+        self:wrap(opt)
     end
+end
+
+function WrapContext:specialize_opt()
+    local opt = {}
+    for key, value in pairs(self.opt) do
+        if type(value) == 'table' then
+            opt[key] = false
+            for _, brace in ipairs(value) do
+                if self.range.pair == BracePair.from_brace(brace) then
+                    opt[key] = true
+                    break
+                end
+            end
+        else
+            opt[key] = value
+        end
+    end
+
+    return opt
 end
 
 return {
