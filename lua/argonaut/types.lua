@@ -488,30 +488,38 @@ function WrapContext:unwrap(opt)
         padding = ' '
     end
 
-    local line = self.indent .. self.prefix .. padding
+    local builder = Builder.new(self.indent_level, self.indent_block)
+    builder:update(self.prefix)
+    builder:update(padding)
 
     local cursor = nil
+    local update_param = function(param)
+        if param:is_active() then
+            cursor = builder:get_offset()
+            cursor.row = cursor.row + self.range.start.row
+            cursor.col = cursor.col + param.offset
+        end
+
+        builder:update(param.text)
+    end
+
     for i, param in ipairs(self.params.parsed) do
-        if param:is_active() then
-            cursor = Cursor.new(0, #line + param.offset)
-        end
-
-        line = line .. param.text
+        update_param(param)
         if i < #self.params.parsed then
-            line = line .. ', '
+            builder:update(', ')
         end
     end
 
-    line = line .. padding .. self.suffix
+    builder:update(padding)
+    builder:update(self.suffix)
+    builder:flush()
 
-    vim.fn.setline(self.range.start.row, line)
-    vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
-
-    for _, param in ipairs(self.params.parsed) do
-        if param:is_active() then
-            cursor.row = Cursor:get_current().row - 1
-        end
-    end
+    vim.fn.setline(self.range.start.row, builder.lines[1])
+    vim.fn.execute(string.format(
+        '%d,%dd_',
+        self.range.start.row + 1,
+        self.range.stop.row
+    ))
 
     if cursor then
         cursor:set_current()
