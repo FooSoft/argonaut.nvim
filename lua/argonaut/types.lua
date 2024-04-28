@@ -326,6 +326,48 @@ function ParamList:parse()
 end
 
 --
+-- Builder
+--
+
+local Builder = {}
+Builder.__index = Builder
+
+function Builder.new(indent_level, indent_block)
+    local builder = {
+        lines = {},
+        line = '',
+        indent_level = indent_level,
+        indent_block = indent_block,
+    }
+
+    return setmetatable(builder, Builder)
+end
+
+function Builder:indent()
+    self.indent_level = self.indent_level + 1
+end
+
+function Builder:unindent()
+    assert(self.indent_level > 0)
+    self.indent_level = self.indent_level - 1
+end
+
+function Builder:update(text)
+    self.line = self.line .. text
+end
+
+function Builder:flush()
+    local indent = string.rep(self.indent_block, self.indent_level)
+    table.insert(self.lines, indent .. self.line)
+    self.line = ''
+end
+
+function Builder:get_offset()
+    local indent = string.rep(self.indent_block, self.indent_level)
+    return Cursor.new(#self.lines, #self.line + #indent)
+end
+
+--
 -- WrapContext
 --
 
@@ -352,8 +394,15 @@ function WrapContext:parse()
     end
 
     local first_line = vim.fn.getline(self.range.start.row)
-    self.indent = first_line:match('^(%s*)')
-    self.prefix = first_line:sub(#self.indent + 1, self.range.start.col)
+    local indent = #first_line:match('^(%s*)')
+    self.prefix = first_line:sub(indent + 1, self.range.start.col)
+    if vim.o.expandtab then
+        self.indent_level = indent / vim.o.shiftwidth
+        self.indent_block = string.rep(' ', vim.o.shiftwidth)
+    else
+        self.indent_level = indent
+        self.indent_block = '\t'
+    end
 
     local last_line = vim.fn.getline(self.range.stop.row)
     self.suffix = last_line:sub(self.range.stop.col)
@@ -365,54 +414,66 @@ function WrapContext:parse()
 end
 
 function WrapContext:wrap(opt)
-    vim.fn.setline(self.range.start.row, self.indent .. self.prefix)
+    local builder = Builder.new(self.indent_level, self.indent_block)
+    builder:update(self.prefix)
+    builder:flush()
+    builder:indent()
 
     local cursor = nil
-    local row = self.range.start.row
+    local update_param = function(param)
+        if param:is_active() then
+            cursor = builder:get_offset()
+            cursor.row = cursor.row + self.range.start.row
+            cursor.col = cursor.col + param.offset
+        end
+
+        builder:update(param.text)
+    end
 
     for i, param in ipairs(self.params.parsed) do
-        local first_param = i == 1
-        local last_param = i == #self.params.parsed
+        local is_first_param = i == 1
+        local is_last_param = i == #self.params.parsed
 
-        local line = ''
         if opt.comma_prefix then
-            line = line .. self.indent .. opt.line_prefix
-            if not first_param then
-                line = line .. ', '
+            builder:update(opt.line_prefix)
+            if not is_first_param then
+                builder:update(', ')
             end
-            line = line .. param.text
+
+            update_param(param)
         else
-            line = line .. self.indent .. opt.line_prefix .. param.text
-            if not last_param or opt.comma_last then
-                line = line .. ','
+            builder:update(opt.line_prefix)
+            update_param(param)
+
+            if not is_last_param or opt.comma_last then
+                builder:update(',')
             end
         end
 
-        if last_param and not opt.brace_last_wrap then
-            line = line .. self.suffix
+        if is_last_param and not opt.brace_last_wrap then
+            builder:update(self.suffix)
         end
 
-        vim.fn.append(row, line)
-        row = row + 1
-        vim.fn.execute(string.format('%d>', row))
+        builder:flush()
+    end
 
-        if first_param and opt.comma_prefix_indent then
-            local prev_shiftwidth = vim.o.shiftwidth
-            vim.o.shiftwidth = prev_shiftwidth - 2
-            vim.fn.execute(string.format('%d>', row))
-            vim.o.shiftwidth = prev_shiftwidth
-        end
-
-        if param:is_active() then
-            cursor = Cursor.get_current()
-            cursor.col = #vim.fn.getline(cursor.row):match('^%s*') + param.offset
-        end
+    if not opt.brace_last_indent then
+        builder:unindent()
     end
 
     if opt.brace_last_wrap then
-        vim.fn.append(row, self.indent .. self.suffix)
-        if opt.brace_last_indent then
-            vim.fn.execute(string.format('%d>', row + 1))
+        builder:update(self.suffix)
+    end
+
+    builder:flush()
+
+    local row = self.range.start.row
+    for i, line in ipairs(builder.lines) do
+        if i == 1 then
+            vim.fn.setline(row, line)
+        else
+            vim.fn.append(row, line)
+            row = row + 1
         end
     end
 
