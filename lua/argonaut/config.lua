@@ -11,6 +11,10 @@ local configs = {
     go = {
         comma_last = true,
     },
+    vim = {
+        brace_last_wrap = false,
+        line_prefix = '\\ ',
+    }
 }
 
 local function set(opts, filetypes)
