@@ -416,7 +416,7 @@ end
 function WrapContext:update_builder_param(builder, param, opt)
     local text = param.text
     if #opt.line_prefix > 0 then
-        text = param.text:match('^%s*[' .. opt.line_prefix .. ']?(.*)')
+        text = param.text:match('^%s*[' .. opt.line_prefix .. ']?%s*(.*)')
     end
 
     local cursor = nil
