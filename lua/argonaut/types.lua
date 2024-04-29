@@ -413,6 +413,23 @@ function WrapContext:parse()
     return true
 end
 
+function WrapContext:update_builder_param(builder, param, opt)
+    local text = param.text
+    if #opt.line_prefix > 0 then
+        text = param.text:match('^%s*[' .. opt.line_prefix .. ']?(.*)')
+    end
+
+    local cursor = nil
+    if param:is_active() then
+        cursor = builder:get_offset()
+        cursor.row = cursor.row + self.range.start.row
+        cursor.col = cursor.col + param.offset - (#param.text - #text)
+    end
+
+    builder:update(text)
+    return cursor
+end
+
 function WrapContext:wrap(opt)
     local builder = Builder.new(self.indent_level, self.indent_block)
     builder:update(self.prefix)
@@ -420,16 +437,6 @@ function WrapContext:wrap(opt)
     builder:indent()
 
     local cursor = nil
-    local update_param = function(param)
-        if param:is_active() then
-            cursor = builder:get_offset()
-            cursor.row = cursor.row + self.range.start.row
-            cursor.col = cursor.col + param.offset
-        end
-
-        builder:update(param.text)
-    end
-
     for i, param in ipairs(self.params.parsed) do
         local is_first_param = i == 1
         local is_last_param = i == #self.params.parsed
@@ -438,12 +445,14 @@ function WrapContext:wrap(opt)
             builder:update(opt.line_prefix)
             if not is_first_param then
                 builder:update(', ')
+            elseif opt.comma_prefix_indent and not is_last_param then
+                builder:update('  ')
             end
 
-            update_param(param)
+            cursor = self:update_builder_param(builder, param, opt) or cursor
         else
             builder:update(opt.line_prefix)
-            update_param(param)
+            cursor = self:update_builder_param(builder, param, opt) or cursor
 
             if not is_last_param or opt.comma_last then
                 builder:update(',')
@@ -463,9 +472,8 @@ function WrapContext:wrap(opt)
 
     if opt.brace_last_wrap then
         builder:update(self.suffix)
+        builder:flush()
     end
-
-    builder:flush()
 
     local row = self.range.start.row
     for i, line in ipairs(builder.lines) do
@@ -493,18 +501,8 @@ function WrapContext:unwrap(opt)
     builder:update(padding)
 
     local cursor = nil
-    local update_param = function(param)
-        if param:is_active() then
-            cursor = builder:get_offset()
-            cursor.row = cursor.row + self.range.start.row
-            cursor.col = cursor.col + param.offset
-        end
-
-        builder:update(param.text)
-    end
-
     for i, param in ipairs(self.params.parsed) do
-        update_param(param)
+        cursor = self:update_builder_param(builder, param, opt) or cursor
         if i < #self.params.parsed then
             builder:update(', ')
         end
