@@ -376,7 +376,8 @@ WrapContext.__index = WrapContext
 
 function WrapContext.new(opt)
     local wrap_context = {
-        opt = opt,
+        opt = nil,
+        base_opt = opt,
         indent = '',
         prefix = '',
         suffix = '',
@@ -387,15 +388,25 @@ function WrapContext.new(opt)
     return setmetatable(wrap_context, WrapContext)
 end
 
-function WrapContext:parse()
-    self.range = BraceRange.find_closest_any()
-    if not self.range then
-        return false
+function WrapContext:config_opt()
+    self.opt = {}
+    for key, value in pairs(self.base_opt) do
+        if type(value) == 'table' then
+            self.opt[key] = false
+            for _, brace in ipairs(value) do
+                if self.range.pair == BracePair.from_brace(brace) then
+                    self.opt[key] = true
+                    break
+                end
+            end
+        else
+            self.opt[key] = value
+        end
     end
+end
 
-    local first_line = vim.fn.getline(self.range.start.row)
-    local indent = #first_line:match('^(%s*)')
-    self.prefix = first_line:sub(indent + 1, self.range.start.col)
+function WrapContext:config_indent(line)
+    local indent = #line:match('^(%s*)')
     if vim.o.expandtab then
         self.indent_level = indent / vim.o.shiftwidth
         self.indent_block = string.rep(' ', vim.o.shiftwidth)
@@ -403,8 +414,20 @@ function WrapContext:parse()
         self.indent_level = indent
         self.indent_block = '\t'
     end
+end
 
+function WrapContext:parse()
+    self.range = BraceRange.find_closest_any()
+    if not self.range then
+        return false
+    end
+
+    self:config_opt()
+
+    local first_line = vim.fn.getline(self.range.start.row)
     local last_line = vim.fn.getline(self.range.stop.row)
+    self:config_indent(first_line)
+    self.prefix = first_line:sub(self.indent_level * #self.indent_block + 1, self.range.start.col)
     self.suffix = last_line:sub(self.range.stop.col)
 
     self.params = ParamList.new(self.range)
@@ -413,24 +436,25 @@ function WrapContext:parse()
     return true
 end
 
-function WrapContext:update_builder_param(builder, param, opt)
+function WrapContext:update_builder_param(builder, param)
     local text = param.text
-    if #opt.line_prefix > 0 then
-        text = param.text:match('^%s*[' .. opt.line_prefix .. ']?%s*(.*)')
+    if #self.opt.line_prefix > 0 then
+        text = param.text:match('^%s*[' .. self.opt.line_prefix .. ']?%s*(.*)')
     end
 
     local cursor = nil
     if param:is_active() then
+        local offset_delta = #param.text - #text
         cursor = builder:get_offset()
         cursor.row = cursor.row + self.range.start.row
-        cursor.col = cursor.col + param.offset - (#param.text - #text)
+        cursor.col = cursor.col + param.offset - offset_delta
     end
 
     builder:update(text)
     return cursor
 end
 
-function WrapContext:wrap(opt)
+function WrapContext:wrap()
     local builder = Builder.new(self.indent_level, self.indent_block)
     builder:update(self.prefix)
     builder:flush()
@@ -441,36 +465,34 @@ function WrapContext:wrap(opt)
         local is_first_param = i == 1
         local is_last_param = i == #self.params.parsed
 
-        if opt.comma_prefix then
-            builder:update(opt.line_prefix)
+        if self.opt.comma_prefix then
+            builder:update(self.opt.line_prefix)
             if not is_first_param then
                 builder:update(', ')
-            elseif opt.comma_prefix_indent and not is_last_param then
+            elseif self.opt.comma_prefix_indent and not is_last_param then
                 builder:update('  ')
             end
-
-            cursor = self:update_builder_param(builder, param, opt) or cursor
+            cursor = self:update_builder_param(builder, param) or cursor
         else
-            builder:update(opt.line_prefix)
-            cursor = self:update_builder_param(builder, param, opt) or cursor
-
-            if not is_last_param or opt.comma_last then
+            builder:update(self.opt.line_prefix)
+            cursor = self:update_builder_param(builder, param) or cursor
+            if not is_last_param or self.opt.comma_last then
                 builder:update(',')
             end
         end
 
-        if is_last_param and not opt.brace_last_wrap then
+        if is_last_param and not self.opt.brace_last_wrap then
             builder:update(self.suffix)
         end
 
         builder:flush()
     end
 
-    if not opt.brace_last_indent then
+    if not self.opt.brace_last_indent then
         builder:unindent()
     end
 
-    if opt.brace_last_wrap then
+    if self.opt.brace_last_wrap then
         builder:update(self.suffix)
         builder:flush()
     end
@@ -485,24 +507,29 @@ function WrapContext:wrap(opt)
         end
     end
 
-    if cursor then
-        cursor:set_current()
+    if not cursor then
+        cursor = self.range.start
     end
+
+    cursor:set_current()
 end
 
-function WrapContext:unwrap(opt)
+function WrapContext:unwrap()
     local padding = ''
-    if opt.brace_pad then
+    if self.opt.brace_pad then
         padding = ' '
     end
 
-    local builder = Builder.new(self.indent_level, self.indent_block)
+    local builder = Builder.new(
+        self.indent_level,
+        self.indent_block
+    )
     builder:update(self.prefix)
     builder:update(padding)
 
     local cursor = nil
     for i, param in ipairs(self.params.parsed) do
-        cursor = self:update_builder_param(builder, param, opt) or cursor
+        cursor = self:update_builder_param(builder, param) or cursor
         if i < #self.params.parsed then
             builder:update(', ')
         end
@@ -513,43 +540,21 @@ function WrapContext:unwrap(opt)
     builder:flush()
 
     vim.fn.setline(self.range.start.row, builder.lines[1])
-    vim.fn.execute(string.format(
-        '%d,%dd_',
-        self.range.start.row + 1,
-        self.range.stop.row
-    ))
+    vim.fn.execute(string.format('%d,%dd_', self.range.start.row + 1, self.range.stop.row))
 
-    if cursor then
-        cursor:set_current()
+    if not cursor then
+        cursor = self.range.start
     end
+
+    cursor:set_current()
 end
 
 function WrapContext:toggle()
-    local opt = self:specialize_opt()
     if self.range:is_wrapped() then
-        self:unwrap(opt)
+        self:unwrap()
     else
-        self:wrap(opt)
+        self:wrap()
     end
-end
-
-function WrapContext:specialize_opt()
-    local opt = {}
-    for key, value in pairs(self.opt) do
-        if type(value) == 'table' then
-            opt[key] = false
-            for _, brace in ipairs(value) do
-                if self.range.pair == BracePair.from_brace(brace) then
-                    opt[key] = true
-                    break
-                end
-            end
-        else
-            opt[key] = value
-        end
-    end
-
-    return opt
 end
 
 return {
