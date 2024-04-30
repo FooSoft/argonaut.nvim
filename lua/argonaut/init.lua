@@ -10,5 +10,5 @@ end
 
 return {
     reflow = reflow,
-    setup = config.set,
+    setup = config.setup,
 }

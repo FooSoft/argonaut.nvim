@@ -1,4 +1,4 @@
-local configs = {
+local opt_curr = {
     default = {
         brace_last_indent = false,
         brace_last_wrap = true,
@@ -17,46 +17,38 @@ local configs = {
     }
 }
 
-local function set(opts, filetypes)
-    if opts then
-        if type(filetypes) == 'string' then
-            filetypes = {filetypes}
-        elseif not filetypes then
-            filetypes = {'default'}
+local function setup(opt)
+    for file_type, file_opt in pairs(opt) do
+        local file_opt_curr = opt_curr[file_type]
+        if not file_opt_curr then
+            file_opt_curr = {}
+            opt_curr[file_type] = file_opt_curr
         end
 
-        for _, filetype in ipairs(filetypes) do
-            local config = configs[filetype]
-            if not config then
-                config = {}
-                configs[filetype] = config
-            end
-
-            for key, value in pairs(opts) do
-                config[key] = value
-            end
+        for param_name, param_value in pairs(file_opt) do
+            file_opt_curr[param_name] = param_value
         end
     end
 end
 
 local function get()
-    local file_config = configs[vim.bo.filetype]
+    local file_opt_curr = opt_curr[vim.bo.filetype]
 
-    local config = {}
-    for key, value in pairs(configs.default) do
-        config[key] = value
-        if file_config then
-            local file_value = file_config[key]
-            if file_value ~= nil then
-                config[key] = file_config[key]
+    local file_opt = {}
+    for param_name, param_value in pairs(opt_curr.default) do
+        file_opt[param_name] = param_value
+        if file_opt_curr then
+            param_value = file_opt_curr[param_name]
+            if param_value ~= nil then
+                file_opt[param_name] = param_value
             end
         end
     end
 
-    return config
+    return file_opt
 end
 
 return {
-    set = set,
+    setup = setup,
     get = get,
 }
