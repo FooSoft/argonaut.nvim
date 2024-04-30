@@ -406,12 +406,12 @@ function WrapContext:config_opt()
 end
 
 function WrapContext:config_indent(line)
-    local indent = #line:match('^(%s*)')
+    local padding = #line:match('^(%s*)')
     if vim.o.expandtab then
-        self.indent_level = indent / vim.o.shiftwidth
+        self.indent_level = math.floor(padding / vim.o.shiftwidth)
         self.indent_block = string.rep(' ', vim.o.shiftwidth)
     else
-        self.indent_level = indent
+        self.indent_level = padding
         self.indent_block = '\t'
     end
 end
