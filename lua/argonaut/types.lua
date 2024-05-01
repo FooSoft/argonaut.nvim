@@ -246,12 +246,18 @@ function Param:is_active()
 end
 
 function Param:flush()
+    self.text = self.text:match('^(.-)%s*$')
     if self.offset then
-        self.offset = math.min(self.offset, #self.text:match('(.-)%s*$'))
-        self.offset = math.max(self.offset - #self.text:match('^%s*'), 1)
+        self.offset = math.min(self.offset, #self.text)
     end
 
-    self.text = self.text:match('^%s*(.-)%s*$')
+    local length_prev = #self.text
+    self.text = self.text:match('^%s*(.-)$')
+    if self.offset then
+        local length_diff = length_prev - #self.text
+        self.offset = math.max(self.offset - length_diff, 1)
+    end
+
     return #self.text > 0
 end
 
