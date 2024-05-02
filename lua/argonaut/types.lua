@@ -225,18 +225,21 @@ Param.__index = Param
 
 function Param.new(pair)
     local param = {
-        cursors = {},
-        offset = nil,
         pair = pair,
         text = '',
+        cursors = {},
+        offset = nil,
     }
 
     return setmetatable(param, Param)
 end
 
 function Param:append(char, cursor)
+    assert(cursor:is_valid())
+
     self.text = self.text .. char
     table.insert(self.cursors, cursor)
+
     if cursor == Cursor.get_current() then
         self.offset = #self.text
     end
@@ -246,18 +249,31 @@ function Param:is_active()
     return self.offset ~= nil
 end
 
-function Param:flush()
-    self.text = self.text:match('^(.-)%s*$')
-    if self.offset then
-        self.offset = math.min(self.offset, #self.text)
+function Param:slice(start, stop)
+    assert(#self.text == #self.cursors)
+
+    local text = ''
+    local cursors = {}
+
+    for i = start,stop do
+        text = text .. self.text:sub(i, i)
+        table.insert(cursors, self.cursors[i])
     end
 
-    local length_prev = #self.text
-    self.text = self.text:match('^%s*(.-)$')
+    self.text = text
+    self.cursors = cursors
+
     if self.offset then
-        local length_diff = length_prev - #self.text
-        self.offset = math.max(self.offset - length_diff, 1)
+        self.offset = math.min(self.offset, stop)
+        self.offset = math.max(self.offset - start + 1, 1)
     end
+end
+
+function Param:strip()
+    assert(#self.text == #self.cursors)
+
+    self:slice(1, #self.text - #self.text:match('%s*$'))
+    self:slice(1 + #self.text:match('^%s*'), #self.text)
 
     return #self.text > 0
 end
@@ -281,7 +297,7 @@ end
 
 function ParamList:flush()
     if self.current then
-        if self.current:flush() then
+        if self.current:strip() then
             table.insert(self.parsed, self.current)
         end
         self.current = nil
