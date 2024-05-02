@@ -223,22 +223,23 @@ end
 local Param = {}
 Param.__index = Param
 
-function Param.new(text, pair)
+function Param.new(pair)
     local param = {
-        text = text,
-        pair = pair,
+        cursors = {},
         offset = nil,
+        pair = pair,
+        text = '',
     }
 
     return setmetatable(param, Param)
 end
 
-function Param:append(char)
+function Param:append(char, cursor)
     self.text = self.text .. char
-end
-
-function Param:activate()
-    self.offset = #self.text
+    table.insert(self.cursors, cursor)
+    if cursor == Cursor.get_current() then
+        self.offset = #self.text
+    end
 end
 
 function Param:is_active()
@@ -296,15 +297,11 @@ function ParamList:update(char, brace_stack, cursor)
         end
     end
 
-    if self.current then
-        self.current:append(char)
-    else
-        self.current = Param.new(char, self.range)
+    if not self.current then
+        self.current = Param.new(self.range)
     end
 
-    if cursor == Cursor.get_current() then
-        self.current:activate()
-    end
+    self.current:append(char, cursor)
 end
 
 function ParamList:parse()
