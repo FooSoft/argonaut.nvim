@@ -255,7 +255,7 @@ function Param:slice(start, stop)
     local text = ''
     local cursors = {}
 
-    for i = start,stop do
+    for i = start, stop do
         text = text .. self.text:sub(i, i)
         table.insert(cursors, self.cursors[i])
     end
@@ -274,6 +274,22 @@ function Param:strip()
 
     self:slice(1, #self.text - #self.text:match('%s*$'))
     self:slice(1 + #self.text:match('^%s*'), #self.text)
+
+    local text = ''
+    local cursors = {}
+
+    for i = 1, #self.text do
+        local char = self.text:sub(i,  i)
+        local cursor = self.cursors[i]
+
+        if cursor:is_literal() or not char:match('%s') or not text:match('%s$') then
+            text = text .. char
+            table.insert(cursors, cursor)
+        end
+    end
+
+    self.text = text
+    self.cursors = cursors
 
     return #self.text > 0
 end
