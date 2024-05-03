@@ -18,7 +18,7 @@ function Cursor:is_literal()
     assert(self:is_valid())
     local syn_id = vim.fn.synID(self.row, self.col, false)
     local syn_attr = vim.fn.synIDattr(syn_id, 'name')
-    return syn_attr:find('String$') or syn_attr:find('Comment$')
+    return syn_attr:find('String$') ~= nil or syn_attr:find('Comment$') ~= nil
 end
 
 function Cursor.get_current()
@@ -223,11 +223,12 @@ end
 local Param = {}
 Param.__index = Param
 
-function Param.new(pair)
+function Param.new(pair, opt)
     local param = {
         pair = pair,
+        opt = opt,
         text = '',
-        cursors = {},
+        literals = {},
         offset = nil,
     }
 
@@ -238,7 +239,7 @@ function Param:append(char, cursor)
     assert(cursor:is_valid())
 
     self.text = self.text .. char
-    table.insert(self.cursors, cursor)
+    table.insert(self.literals, cursor:is_literal())
 
     if cursor == Cursor.get_current() then
         self.offset = #self.text
@@ -250,18 +251,18 @@ function Param:is_active()
 end
 
 function Param:slice(start, stop)
-    assert(#self.text == #self.cursors)
+    assert(#self.text == #self.literals)
 
     local text = ''
-    local cursors = {}
+    local literals = {}
 
     for i = start, stop do
         text = text .. self.text:sub(i, i)
-        table.insert(cursors, self.cursors[i])
+        table.insert(literals, self.literals[i])
     end
 
     self.text = text
-    self.cursors = cursors
+    self.literals = literals
 
     if self.offset then
         self.offset = math.min(self.offset, stop)
@@ -269,27 +270,32 @@ function Param:slice(start, stop)
     end
 end
 
-function Param:strip()
-    assert(#self.text == #self.cursors)
+function Param:trim()
+    assert(#self.text == #self.literals)
 
     self:slice(1, #self.text - #self.text:match('%s*$'))
     self:slice(1 + #self.text:match('^%s*'), #self.text)
 
-    local text = ''
-    local cursors = {}
+    if self.opt.trim_inner_spaces then
+        local text = ''
+        local literals = {}
+        local offset = self.offset
 
-    for i = 1, #self.text do
-        local char = self.text:sub(i,  i)
-        local cursor = self.cursors[i]
+        for i = 1, #self.text do
+            local char = self.text:sub(i,  i)
+            local literal = self.literals[i]
 
-        if cursor:is_literal() or not char:match('%s') or not text:match('%s$') then
-            text = text .. char
-            table.insert(cursors, cursor)
+            if literal or not char:match('%s') or not text:match('%s$') then
+                text = text .. char
+                table.insert(literals, literal)
+            elseif offset and offset >= i then
+                self.offset = math.max(1, self.offset - 1)
+            end
         end
-    end
 
-    self.text = text
-    self.cursors = cursors
+        self.text = text
+        self.literals = literals
+    end
 
     return #self.text > 0
 end
@@ -301,9 +307,10 @@ end
 local ParamList = {}
 ParamList.__index = ParamList
 
-function ParamList.new(range)
+function ParamList.new(range, opt)
     local params = {
         range = range,
+        opt = opt,
         current = nil,
         parsed = {},
     }
@@ -313,7 +320,7 @@ end
 
 function ParamList:flush()
     if self.current then
-        if self.current:strip() then
+        if self.current:trim() then
             table.insert(self.parsed, self.current)
         end
         self.current = nil
@@ -330,7 +337,7 @@ function ParamList:update(char, brace_stack, cursor)
     end
 
     if not self.current then
-        self.current = Param.new(self.range)
+        self.current = Param.new(self.range, self.opt)
     end
 
     self.current:append(char, cursor)
@@ -465,7 +472,7 @@ function WrapContext:parse()
     self.prefix = first_line:sub(self.indent_level * #self.indent_block + 1, self.range.start.col)
     self.suffix = last_line:sub(self.range.stop.col)
 
-    self.params = ParamList.new(self.range)
+    self.params = ParamList.new(self.range, self.opt)
     self.params:parse()
 
     return true
