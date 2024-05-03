@@ -6,6 +6,7 @@ local opt_curr = {
         comma_last = false,
         comma_prefix = false,
         comma_prefix_indent = false,
+        line_max = 16,
         line_prefix = '',
         trim_inner_spaces = true,
     },

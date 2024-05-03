@@ -191,6 +191,10 @@ function BraceRange.find_closest_any()
     end
 end
 
+function BraceRange:get_rows()
+    return self.stop.row - self.start.row
+end
+
 function BraceRange:is_wrapped()
     return self.start.row < self.stop.row
 end
@@ -465,6 +469,10 @@ function WrapContext:parse()
     end
 
     self:config_opt()
+
+    if self.range:get_rows() > self.opt.line_max then
+        return false
+    end
 
     local first_line = vim.fn.getline(self.range.start.row)
     local last_line = vim.fn.getline(self.range.stop.row)
