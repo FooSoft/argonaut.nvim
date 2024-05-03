@@ -14,11 +14,11 @@ function Cursor:is_valid()
     return self.row > 0 and self.col > 0
 end
 
-function Cursor:is_string()
+function Cursor:is_literal()
     assert(self:is_valid())
     local syn_id = vim.fn.synID(self.row, self.col, false)
     local syn_attr = vim.fn.synIDattr(syn_id, 'name')
-    return syn_attr:find('String$')
+    return syn_attr:find('String$') or syn_attr:find('Comment$')
 end
 
 function Cursor.get_current()
@@ -86,7 +86,7 @@ function BracePair:find_closest(backward)
 
     local ignore_func = function()
         local cursor = Cursor.get_current()
-        return cursor:is_string()
+        return cursor:is_literal()
     end
 
     local escaped_pair = self:get_escaped()
@@ -305,7 +305,7 @@ function ParamList:flush()
 end
 
 function ParamList:update(char, brace_stack, cursor)
-    if not cursor:is_string() then
+    if not cursor:is_literal() then
         brace_stack:update(char)
         if brace_stack:empty() and char == ',' then
             self:flush()
