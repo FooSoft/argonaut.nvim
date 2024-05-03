@@ -280,6 +280,10 @@ function Param:trim()
     self:slice(1, #self.text - #self.text:match('%s*$'))
     self:slice(1 + #self.text:match('^%s*'), #self.text)
 
+    if #self.opt.line_prefix > 0 and self.text:match('^' .. self.opt.line_prefix) then
+        self:slice(1 + #self.opt.line_prefix, #self.text)
+    end
+
     if self.opt.trim_inner_spaces then
         local text = ''
         local literals = {}
@@ -366,9 +370,9 @@ function ParamList:parse()
         for col = start_col, stop_col do
             self:update(line:sub(col, col), brace_stack, Cursor.new(row, col))
         end
-    end
 
-    self:flush()
+        self:flush()
+    end
 end
 
 --
@@ -487,20 +491,14 @@ function WrapContext:parse()
 end
 
 function WrapContext:update_builder_param(builder, param)
-    local text = param.text
-    if #self.opt.line_prefix > 0 then
-        text = param.text:match('^%s*[' .. self.opt.line_prefix .. ']?%s*(.*)')
-    end
-
     local cursor = nil
     if param:is_active() then
-        local offset_delta = #param.text - #text
         cursor = builder:get_offset()
         cursor.row = cursor.row + self.range.start.row
-        cursor.col = cursor.col + param.offset - offset_delta
+        cursor.col = cursor.col + param.offset
     end
 
-    builder:update(text)
+    builder:update(param.text)
     return cursor
 end
 
@@ -543,6 +541,7 @@ function WrapContext:wrap()
     end
 
     if self.opt.brace_last_wrap then
+        builder:update(self.opt.line_prefix)
         builder:update(self.suffix)
         builder:flush()
     end

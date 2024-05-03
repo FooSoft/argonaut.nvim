@@ -14,8 +14,7 @@ local opt_curr = {
         comma_last = true,
     },
     vim = {
-        brace_last_wrap = false,
-        line_prefix = '\\ ',
+        line_prefix = '\\',
     }
 }
 
