@@ -590,10 +590,7 @@ function WrapContext:unwrap()
         padding = ' '
     end
 
-    local builder = Builder.new(
-        self.indent_level,
-        self.indent_block
-    )
+    local builder = Builder.new(self.indent_level, self.indent_block)
     builder:update(self.prefix)
     builder:update(padding)
 
