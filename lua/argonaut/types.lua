@@ -234,6 +234,8 @@ function Param.new(pair, opt)
         text = '',
         literals = {},
         offset = nil,
+        start = nil,
+        stop = nil,
     }
 
     return setmetatable(param, Param)
@@ -248,6 +250,12 @@ function Param:append(char, cursor)
     if cursor == Cursor.get_current() then
         self.offset = #self.text
     end
+
+    if not self.start then
+        self.start = cursor
+    end
+
+    self.stop = cursor
 end
 
 function Param:is_active()
@@ -280,7 +288,7 @@ function Param:trim()
     self:slice(1, #self.text - #self.text:match('%s*$'))
     self:slice(1 + #self.text:match('^%s*'), #self.text)
 
-    if #self.opt.line_prefix > 0 and self.text:match('^' .. self.opt.line_prefix) then
+    if self.text:match('^' .. self.opt.line_prefix) then
         self:slice(1 + #self.opt.line_prefix, #self.text)
     end
 
