@@ -236,6 +236,7 @@ function Param.new(pair, opt)
         offset = nil,
         start = nil,
         stop = nil,
+        terminator = nil,
     }
 
     return setmetatable(param, Param)
@@ -256,6 +257,13 @@ function Param:append(char, cursor)
     end
 
     self.stop = cursor
+end
+
+function Param:terminate(cursor)
+    self.terminator = cursor
+    if self.terminator == Cursor.get_current() then
+        self.offset = #self.text
+    end
 end
 
 function Param:is_active()
@@ -298,7 +306,7 @@ function Param:trim()
         local offset = self.offset
 
         for i = 1, #self.text do
-            local char = self.text:sub(i,  i)
+            local char = self.text:sub(i, i)
             local literal = self.literals[i]
 
             if literal or not char:match('%s') or not text:match('%s$') then
@@ -334,11 +342,16 @@ function ParamList.new(range, opt)
     return setmetatable(params, ParamList)
 end
 
-function ParamList:flush()
+function ParamList:flush(cursor)
     if self.current then
+        if cursor then
+            self.current:terminate(cursor)
+        end
+
         if self.current:trim() then
             table.insert(self.parsed, self.current)
         end
+
         self.current = nil
     end
 end
@@ -347,7 +360,7 @@ function ParamList:update(char, brace_stack, cursor)
     if not cursor:is_literal() then
         brace_stack:update(char)
         if brace_stack:empty() and char == ',' then
-            self:flush()
+            self:flush(cursor)
             return
         end
     end
