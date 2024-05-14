@@ -296,30 +296,24 @@ function Param:trim()
     self:slice(1, #self.text - #self.text:match('%s*$'))
     self:slice(1 + #self.text:match('^%s*'), #self.text)
 
-    if self.text:match('^' .. self.opt.line_prefix) then
-        self:slice(1 + #self.opt.line_prefix, #self.text)
-    end
+    local text = ''
+    local literals = {}
+    local offset = self.offset
 
-    if self.opt.trim_inner_spaces then
-        local text = ''
-        local literals = {}
-        local offset = self.offset
+    for i = 1, #self.text do
+        local char = self.text:sub(i, i)
+        local literal = self.literals[i]
 
-        for i = 1, #self.text do
-            local char = self.text:sub(i, i)
-            local literal = self.literals[i]
-
-            if literal or not char:match('%s') or not text:match('%s$') then
-                text = text .. char
-                table.insert(literals, literal)
-            elseif offset and offset >= i then
-                self.offset = math.max(1, self.offset - 1)
-            end
+        if literal or not char:match('%s') or not text:match('%s$') then
+            text = text .. char
+            table.insert(literals, literal)
+        elseif offset and offset >= i then
+            self.offset = math.max(1, self.offset - 1)
         end
-
-        self.text = text
-        self.literals = literals
     end
+
+    self.text = text
+    self.literals = literals
 
     return #self.text > 0
 end
@@ -391,9 +385,9 @@ function ParamList:parse()
         for col = start_col, stop_col do
             self:update(line:sub(col, col), brace_stack, Cursor.new(row, col))
         end
-
-        self:flush()
     end
+
+    self:flush()
 end
 
 --
@@ -535,7 +529,6 @@ function WrapContext:wrap()
         local is_last_param = i == #self.params.parsed
 
         if self.opt.comma_prefix then
-            builder:update(self.opt.line_prefix)
             if not is_first_param then
                 builder:update(', ')
             elseif self.opt.comma_prefix_indent and not is_last_param then
@@ -543,7 +536,6 @@ function WrapContext:wrap()
             end
             cursor = self:update_builder_param(builder, param) or cursor
         else
-            builder:update(self.opt.line_prefix)
             cursor = self:update_builder_param(builder, param) or cursor
             if not is_last_param or self.opt.comma_last then
                 builder:update(',')
@@ -562,7 +554,6 @@ function WrapContext:wrap()
     end
 
     if self.opt.brace_last_wrap then
-        builder:update(self.opt.line_prefix)
         builder:update(self.suffix)
         builder:flush()
     end

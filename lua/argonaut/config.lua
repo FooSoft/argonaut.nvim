@@ -7,8 +7,6 @@ local opt_curr = {
         comma_prefix = false,
         comma_prefix_indent = false,
         line_max = 32,
-        line_prefix = '',
-        trim_inner_spaces = true,
     },
     go = {
         comma_last = true,
@@ -39,9 +37,9 @@ local function get()
     for param_name, param_value in pairs(opt_curr.default) do
         file_opt[param_name] = param_value
         if file_opt_curr then
-            param_value = file_opt_curr[param_name]
-            if param_value ~= nil then
-                file_opt[param_name] = param_value
+            local param_value_curr = file_opt_curr[param_name]
+            if param_value_curr ~= nil then
+                file_opt[param_name] = param_value_curr
             end
         end
     end
