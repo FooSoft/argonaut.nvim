@@ -11,6 +11,9 @@ local options_current = {
     go = {
         comma_last = true,
     },
+    lua = {
+        comma_last = true,
+    },
 }
 
 local function setup(opt)

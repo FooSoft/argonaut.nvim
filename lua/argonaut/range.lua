@@ -206,7 +206,12 @@ function Range:query_option(name)
 end
 
 function Range:is_wrapped()
-    return self.start_cursor.row ~= self.stop_cursor.row
+    for _, param in ipairs(self.params) do
+        if param:is_wrapped() then
+            return true
+        end
+    end
+    return false
 end
 
 function Range.__lt(range_1, range_2)

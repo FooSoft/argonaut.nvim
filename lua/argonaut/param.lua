@@ -5,6 +5,24 @@ local function is_empty_cell(cell)
     return cell.type == 'cursor' and not cell.value:get_value():match('%S')
 end
 
+local function get_param_start_row(param)
+    local cell = param.cells[1]
+    if cell.type == 'range' then
+        return cell.value.start_cursor.row
+    elseif cell.type == 'cursor' then
+        return cell.value.row
+    end
+end
+
+local function get_param_stop_row(param)
+    local cell = param.cells[#param.cells]
+    if cell.type == 'range' then
+        return cell.value.stop_cursor.row
+    elseif cell.type == 'cursor' then
+        return cell.value.row
+    end
+end
+
 function Param.new(range, index, cells)
     local param = {
         range = range,
@@ -69,6 +87,22 @@ function Param:write(builder, wrapped)
         elseif cell.type == 'cursor' then
             builder:write(cell.value:get_value())
         end
+    end
+end
+
+function Param:is_wrapped()
+    local previous_param = self:get_previous()
+    if previous_param then
+        -- print(get_param_stop_row(previous_param), get_param_start_row(self))
+        return get_param_stop_row(previous_param) ~= get_param_start_row(self)
+    else
+        return false
+    end
+end
+
+function Param:get_previous()
+    if self.index > 1 then
+        return self.range.params[self.index-1]
     end
 end
 
