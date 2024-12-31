@@ -1,4 +1,4 @@
-if not vim.g.argonaut then
+if not vim.g.argonaut_loaded then
     local function argonaut_reload()
         for name, _ in pairs(package.loaded) do
             if vim.startswith(name, 'argonaut') then
@@ -8,11 +8,12 @@ if not vim.g.argonaut then
     end
 
     local function argonaut_reflow()
+        argonaut_reload()
         require('argonaut').reflow()
     end
 
     vim.api.nvim_create_user_command('ArgonautReload', argonaut_reload, {})
     vim.api.nvim_create_user_command('ArgonautReflow', argonaut_reflow, {})
 
-    vim.g.argonaut = true
+    vim.g.argonaut_loaded = true
 end
