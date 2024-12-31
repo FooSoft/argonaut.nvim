@@ -6,7 +6,6 @@ local options_current = {
         comma_last = false,
         comma_prefix = false,
         comma_prefix_indent = false,
-        line_max = 32,
     },
     go = {
         comma_last = true,

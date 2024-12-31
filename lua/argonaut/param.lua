@@ -93,10 +93,9 @@ end
 function Param:is_wrapped()
     local previous_param = self:get_previous()
     if previous_param then
-        -- print(get_param_stop_row(previous_param), get_param_start_row(self))
         return get_param_stop_row(previous_param) ~= get_param_start_row(self)
     else
-        return false
+        return self.range.start_cursor.row ~= get_param_start_row(self)
     end
 end
 
