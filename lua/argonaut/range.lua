@@ -147,12 +147,25 @@ function Range:write(builder, wrapped)
             builder:push_indent()
 
             for i, param in ipairs(self.params) do
-                param:write(builder)
-
+                local is_first_param = i == 1
                 local is_last_param = i == #self.params
-                if not is_last_param or self:query_option('comma_last') then
-                    builder:write(',')
+
+                if self:query_option('comma_prefix') then
+                    if is_first_param then
+                        if self:query_option('comma_prefix_indent') then
+                            builder:write('  ')
+                        end
+                    else
+                        builder:write(', ')
+                    end
+                    param:write(builder)
+                else
+                    param:write(builder)
+                    if not is_last_param or self:query_option('comma_last') then
+                        builder:write(',')
+                    end
                 end
+
                 if not is_last_param then
                     builder:endline()
                 end
@@ -206,7 +219,12 @@ function Range:query_option(name)
 end
 
 function Range:is_wrapped()
-    return self.start_cursor.row ~= self.stop_cursor.row
+    for _, param in ipairs(self.params) do
+        if param:is_wrapped() then
+            return true
+        end
+    end
+    return false
 end
 
 function Range.__lt(range_1, range_2)
