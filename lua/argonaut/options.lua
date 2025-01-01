@@ -30,8 +30,6 @@ local function setup(opt)
 end
 
 local function query(param_name, pairing)
-    assert(pairing)
-
     local default_param_value = options_current.default[param_name]
     local param_value = default_param_value
 

@@ -41,23 +41,23 @@ function ParamRangeCell.new(range)
 end
 
 function ParamRangeCell:write(builder, wrapped)
-    self.value:write(builder, wrapped)
+    self.range:write(builder, wrapped)
 end
 
 function ParamRangeCell:hit_test(cursor)
-    return self.value:hit_test(cursor)
+    return self.range:hit_test(cursor)
 end
 
 function ParamRangeCell:hit_search(trace, depth)
-    return self.value:hit_search(trace, depth + 1)
+    return self.range:hit_search(trace, depth + 1)
 end
 
 function ParamRangeCell:get_start_row()
-    return self.value.start_cursor.row
+    return self.range.start_cursor.row
 end
 
 function ParamRangeCell:get_stop_row()
-    return self.value.stop_cursor.row
+    return self.range.stop_cursor.row
 end
 
 function ParamRangeCell:is_empty()
@@ -77,7 +77,7 @@ function Param.new_cursor_cell(cursor)
 end
 
 function Param.new_range_cell(range)
-    return ParamRangeCell(range)
+    return ParamRangeCell.new(range)
 end
 
 function Param:append(cell)
