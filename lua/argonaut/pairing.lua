@@ -51,7 +51,7 @@ function Pairing:find_closest(forward)
 
     local ignore_func = function()
         local cursor = Cursor.get_current()
-        return cursor:is_literal()
+        return cursor:is_comment() or cursor:is_string()
     end
 
     local escaped_pair = self:get_escaped()

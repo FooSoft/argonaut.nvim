@@ -79,11 +79,11 @@ function Range:parse()
         param = nil
     end
 
-    local cursor = self.start_cursor:next()
+    local cursor = self.start_cursor:get_next()
     while cursor ~= self.stop_cursor do
         local value = cursor:get_value()
 
-        if cursor:is_literal() then
+        if cursor:is_string() or cursor:is_comment() then
             append_param_value(cursor, 'cursor')
         else
             local range = find_at_cursor(cursor)
@@ -97,7 +97,7 @@ function Range:parse()
             end
         end
 
-        cursor = cursor:next()
+        cursor = cursor:get_next()
     end
 
     append_param()
