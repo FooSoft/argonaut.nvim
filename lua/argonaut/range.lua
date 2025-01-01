@@ -64,12 +64,12 @@ function Range:parse()
     local param = nil
     local param_index = 1
 
-    local append_param_value = function(value, type)
+    local append_param_value = function(cell)
         if not param then
             param = Param.new(self, param_index)
             param_index = param_index + 1
         end
-        param:append(value, type)
+        param:append(cell)
     end
 
     local append_param = function()
@@ -84,16 +84,16 @@ function Range:parse()
         local value = cursor:get_value()
 
         if cursor:is_string() or cursor:is_comment() then
-            append_param_value(cursor, 'cursor')
+            append_param_value(Param.new_cursor_cell(cursor))
         else
             local range = find_at_cursor(cursor)
             if range then
-                append_param_value(range, 'range')
+                append_param_value(Param.new_range_cell(range))
                 cursor = range.stop_cursor
             elseif value == ',' then
                 append_param()
             else
-                append_param_value(cursor, 'cursor')
+                append_param_value(Param.new_cursor_cell(cursor))
             end
         end
 

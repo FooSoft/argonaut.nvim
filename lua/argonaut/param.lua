@@ -1,54 +1,67 @@
-local ParamCell = {}
-ParamCell.__index = ParamCell
+local ParamCursorCell = {}
+ParamCursorCell.__index = ParamCursorCell
 
-function ParamCell.new(value, type)
-    assert(type == 'range' or type == 'cursor')
-    local param_cell = {value = value, type = type}
-    return setmetatable(param_cell, ParamCell)
+function ParamCursorCell.new(cursor)
+    local param_cell_cursor = {cursor = cursor}
+    return setmetatable(param_cell_cursor, ParamCursorCell)
 end
 
-function ParamCell:write(builder, wrapped)
-    if self.type == 'range' then
-        self.value:write(builder, wrapped)
-    elseif self.type == 'cursor' then
-        builder:write(self.value:get_value())
-    end
+function ParamCursorCell:write(builder)
+    builder:write(self.cursor:get_value())
 end
 
-function ParamCell:hit_test(cursor)
-    if self.type == 'range' then
-        return self.value:hit_test(cursor)
-    elseif self.type == 'cursor' and self.value == cursor then
+function ParamCursorCell:hit_test(cursor)
+    if self.cursor == cursor then
         return {}
     end
 end
 
-function ParamCell:hit_search(trace, depth)
-    if self.type == 'range' then
-        return self.value:hit_search(trace, depth + 1)
-    elseif self.type == 'cursor' then
-        return self.value
-    end
+function ParamCursorCell:hit_search()
+    return self.cursor
 end
 
-function ParamCell:get_start_row()
-    if self.type == 'range' then
-        return self.value.start_cursor.row
-    elseif self.type == 'cursor' then
-        return self.value.row
-    end
+function ParamCursorCell:get_start_row()
+    return self.cursor.row
 end
 
-function ParamCell:get_stop_row()
-    if self.type == 'range' then
-        return self.value.stop_cursor.row
-    elseif self.type == 'cursor' then
-        return self.value.row
-    end
+function ParamCursorCell:get_stop_row()
+    return self.cursor.row
 end
 
-function ParamCell:is_empty()
-    return self.type == 'cursor' and not self.value:get_value():match('%S')
+function ParamCursorCell:is_empty()
+    return not self.cursor:get_value():match('%S')
+end
+
+local ParamRangeCell = {}
+ParamRangeCell.__index = ParamRangeCell
+
+function ParamRangeCell.new(range)
+    local param_cell_range = {range = range}
+    return setmetatable(param_cell_range, ParamRangeCell)
+end
+
+function ParamRangeCell:write(builder, wrapped)
+    self.value:write(builder, wrapped)
+end
+
+function ParamRangeCell:hit_test(cursor)
+    return self.value:hit_test(cursor)
+end
+
+function ParamRangeCell:hit_search(trace, depth)
+    return self.value:hit_search(trace, depth + 1)
+end
+
+function ParamRangeCell:get_start_row()
+    return self.value.start_cursor.row
+end
+
+function ParamRangeCell:get_stop_row()
+    return self.value.stop_cursor.row
+end
+
+function ParamRangeCell:is_empty()
+    return false
 end
 
 local Param = {}
@@ -59,8 +72,16 @@ function Param.new(range, index, cells)
     return setmetatable(param, Param)
 end
 
-function Param:append(value, type)
-    table.insert(self.cells, ParamCell.new(value, type))
+function Param.new_cursor_cell(cursor)
+    return ParamCursorCell.new(cursor)
+end
+
+function Param.new_range_cell(range)
+    return ParamRangeCell(range)
+end
+
+function Param:append(cell)
+    table.insert(self.cells, cell)
 end
 
 function Param:stripped()
