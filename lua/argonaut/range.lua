@@ -74,7 +74,7 @@ function Range:parse()
 
     local append_param = function()
         if param and not param:is_empty() then
-            table.insert(self.params, param:stripped())
+            table.insert(self.params, param)
         end
         param = nil
     end
@@ -105,32 +105,46 @@ end
 
 function Range:hit_test(cursor)
     if self:contains(cursor) then
-        local trace = nil
         for i, param in pairs(self.params) do
-            local trace_param = param:hit_test(cursor)
-            if trace_param then
-                trace = {i}
-                for _, trace_param_frame in ipairs(trace_param) do
-                    table.insert(trace, trace_param_frame)
+            local trace = param:hit_test(cursor)
+            if trace then
+                print('hit param ' .. i)
+
+                if #trace > 1 then
+                    print('++++++++++++++++++ do it ++++++++++++')
                 end
-                break
+
+                table.insert(trace, 1, {
+                    index = i,
+                    count = #self.params,
+                    type = 'range'
+                })
+
+                return trace
             end
         end
 
-        if not trace then
-            trace = {0}
-        end
-
-        return trace
+        return {{
+            index = 0,
+            count = #self.params,
+            type = 'range'
+        }}
     end
 end
 
 function Range:hit_search(trace, depth)
-    local index = trace[depth]
-    if index == 0 then
+    print('*** RANGE @', depth)
+    dump(trace[depth])
+
+    local frame = trace[depth]
+    assert(frame.type == 'range')
+    assert(frame.count == #self.params)
+    assert(frame.index <= #self.params)
+
+    if self.index == 0 then
         return self.start_cursor
     else
-        return self.params[index]:hit_search(trace, depth + 1)
+        return self.params[frame.index]:hit_search(trace, depth + 1)
     end
 end
 

@@ -33,7 +33,10 @@ local function reflow()
     builder:output(range.start_cursor.row, range.stop_cursor.row)
 
     local new_range = Range.find_at_cursor(range.start_cursor)
+    print('-------- begin ----------------')
+    dump(trace)
     new_range:hit_search(trace, 1):set_current()
+    print('-------- end ----------------')
 
     return true
 end

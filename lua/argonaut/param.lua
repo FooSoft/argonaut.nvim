@@ -12,6 +12,7 @@ end
 
 function ParamCursorCell:hit_test(cursor)
     if self.cursor == cursor then
+        print('!!! hit cursor')
         return {}
     end
 end
@@ -32,6 +33,10 @@ function ParamCursorCell:is_empty()
     return not self.cursor:get_value():match('%S')
 end
 
+function ParamCursorCell:get_type()
+    return 'cursor'
+end
+
 local ParamRangeCell = {}
 ParamRangeCell.__index = ParamRangeCell
 
@@ -45,11 +50,15 @@ function ParamRangeCell:write(builder, wrapped)
 end
 
 function ParamRangeCell:hit_test(cursor)
-    return self.range:hit_test(cursor)
+    local trace =  self.range:hit_test(cursor)
+    if trace then
+        print('!!! hit range')
+        return trace
+    end
 end
 
 function ParamRangeCell:hit_search(trace, depth)
-    return self.range:hit_search(trace, depth + 1)
+    return self.range:hit_search(trace, depth)
 end
 
 function ParamRangeCell:get_start_row()
@@ -62,6 +71,10 @@ end
 
 function ParamRangeCell:is_empty()
     return false
+end
+
+function ParamRangeCell:get_type()
+    return 'range'
 end
 
 local Param = {}
@@ -84,32 +97,58 @@ function Param:append(cell)
     table.insert(self.cells, cell)
 end
 
-function Param:stripped()
-    local cells = {}
-    for i = self:find_index_begin(), self:find_index_end() do
-        table.insert(cells, self.cells[i])
+function Param:hit_test(cursor)
+    for _, cell in ipairs(self.cells) do
+        print(cell:get_type())
     end
 
-    return Param.new(self.range, self.index, cells)
-end
-
-function Param:hit_test(cursor)
-    for i, cell in ipairs(self.cells) do
+    for i = 1, #self.cells do
+        local cell = self.cells[i]
         local trace = cell:hit_test(cursor)
         if trace then
-            table.insert(trace, 1, i)
+            local start_index = self:find_index_start()
+            local stop_index = self:find_index_stop()
+
+            local index = math.min(i, stop_index)
+            index = math.max(1, index - start_index + 1)
+            print('lol', i, index, start_index, stop_index)
+
+
+            print('hit cell ' .. i .. ' ' .. cell:get_type())
+            table.insert(trace, 1, {
+                index = index,
+                count = stop_index - start_index + 1,
+                type = cell:get_type()
+            })
+
             return trace
         end
     end
 end
 
 function Param:hit_search(trace, depth)
-    local index = trace[depth]
-    return self.cells[index]:hit_search(depth)
+    print('*** PARAM @', depth)
+    dump(trace[depth])
+
+    local start_index = self:find_index_start()
+    local stop_index = self:find_index_stop()
+    local offset = math.max(0, start_index - 1)
+
+    assert(depth <= #trace)
+    local frame = trace[depth]
+
+    assert(frame.count == stop_index - start_index + 1)
+    local index = frame.index + offset
+
+    assert(index <= #self.cells)
+    local cell = self.cells[index]
+
+    assert(cell:get_type() == frame.type)
+    return cell:hit_search(trace, depth)
 end
 
 function Param:write(builder, wrapped)
-    for i = self:find_index_begin(), self:find_index_end() do
+    for i = self:find_index_start(), self:find_index_stop() do
         self.cells[i]:write(builder, wrapped)
     end
 end
@@ -138,7 +177,7 @@ function Param:get_stop_row()
     end
 end
 
-function Param:find_index_begin()
+function Param:find_index_start()
     for i = 1, #self.cells do
         if not self.cells[i]:is_empty() then
             return i
@@ -146,7 +185,7 @@ function Param:find_index_begin()
     end
 end
 
-function Param:find_index_end()
+function Param:find_index_stop()
     for i = #self.cells, 1, -1 do
         if not self.cells[i]:is_empty() then
             return i
@@ -164,7 +203,7 @@ function Param:is_wrapped()
 end
 
 function Param:is_empty()
-    return self:find_index_begin() == nil
+    return self:find_index_start() == nil
 end
 
 return Param
