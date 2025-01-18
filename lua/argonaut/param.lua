@@ -105,7 +105,7 @@ end
 
 function Param:hit_search(trace, depth)
     local index = trace[depth]
-    return self.cells[index]:hit_search(depth)
+    return self.cells[index]:hit_search(trace, depth)
 end
 
 function Param:write(builder, wrapped)
