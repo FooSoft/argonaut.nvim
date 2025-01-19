@@ -54,8 +54,9 @@ local function find_closest()
 end
 
 local function find_at_cursor(start_cursor, parent_range)
-    local pairing = Pairing.from_brace(start_cursor:get_value())
-    if pairing then
+    local value = start_cursor:get_value()
+    local pairing = Pairing.from_brace(value)
+    if pairing and value == pairing.open then
         local cursor_current = Cursor:get_current()
         start_cursor:set_current()
 
@@ -75,6 +76,10 @@ local function find_at_cursor(start_cursor, parent_range)
 end
 
 function Range.new(start_cursor, stop_cursor, pairing)
+    assert(start_cursor < stop_cursor)
+    assert(start_cursor:get_value() == pairing.open)
+    assert(stop_cursor:get_value() == pairing.close)
+
     local range = {
         start_cursor = start_cursor,
         stop_cursor = stop_cursor,
@@ -133,38 +138,40 @@ function Range:parse()
 end
 
 function Range:hit_test(cursor)
-    if self:contains_cursor(cursor) then
-        local frame = {
-            type = 'range',
-            pairing = self.pairing.open .. self.pairing.close,
-            param_count = #self.params,
-            param_index = 0,
-        }
+    if not self:contains_cursor(cursor) or #self.params == 0 then
+        return
+    end
 
-        if cursor == self.start_cursor and self.params[1]:is_after_cursor(cursor) then
-            cursor = cursor:get_next()
-        elseif cursor == self.stop_cursor and self.params[#self.params]:is_before_cursor(cursor) then
-            cursor = cursor:get_previous()
-        end
+    local frame = {
+        type = 'range',
+        pairing = self.pairing.open .. self.pairing.close,
+        param_count = #self.params,
+        param_index = 0,
+    }
 
-        for i = 2, #self.params do
-            local param = self.params[i]
-            local previous_param = self.params[i - 1]
-            if previous_param:is_before_cursor(cursor) and param:is_after_cursor(cursor) then
-                if not previous_param:hit_test(cursor) and not param:hit_test(cursor) then
-                    cursor = cursor:get_previous()
-                    break
-                end
+    if cursor == self.start_cursor and self.params[1]:is_after_cursor(cursor) then
+        cursor = cursor:get_next()
+    elseif cursor == self.stop_cursor and self.params[#self.params]:is_before_cursor(cursor) then
+        cursor = cursor:get_previous()
+    end
+
+    for i = 2, #self.params do
+        local param = self.params[i]
+        local previous_param = self.params[i - 1]
+        if previous_param:is_before_cursor(cursor) and param:is_after_cursor(cursor) then
+            if not previous_param:hit_test(cursor) and not param:hit_test(cursor) then
+                cursor = cursor:get_previous()
+                break
             end
         end
+    end
 
-        for i, param in pairs(self.params) do
-            local trace = param:hit_test(cursor)
-            if trace then
-                frame.param_index = i
-                table.insert(trace, 1, frame)
-                return trace
-            end
+    for i, param in pairs(self.params) do
+        local trace = param:hit_test(cursor)
+        if trace then
+            frame.param_index = i
+            table.insert(trace, 1, frame)
+            return trace
         end
     end
 end
