@@ -34,7 +34,7 @@ local function reflow()
 
     local new_range = Range.find_at_cursor(range.start_cursor)
     assert(new_range)
-    new_range:hit_search(trace, 1):set_current()
+    new_range:hit_search(trace, 1).cursor:set_current()
 
     return true
 end
@@ -42,7 +42,9 @@ end
 local function inspect()
     local range = Range.find_closest()
     if range then
-        local trace = range:hit_test(Cursor.get_current())
+        local trace = range:hit_test(
+            Cursor.get_current()
+        )
         assert(trace)
         dump(trace)
     end

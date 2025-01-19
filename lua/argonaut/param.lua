@@ -23,8 +23,17 @@ function ParamCursorCell:hit_search(trace, depth)
     local frame = trace[depth]
     assert(frame.type == 'cursor_cell')
     assert(frame.char == self.cursor:get_value())
+    assert(depth == #trace)
 
-    return self.cursor
+    return self
+end
+
+function ParamCursorCell:is_before_cursor(cursor)
+    return self.cursor < cursor
+end
+
+function ParamCursorCell:is_after_cursor(cursor)
+    return self.cursor > cursor
 end
 
 function ParamCursorCell:get_start_row()
@@ -59,11 +68,23 @@ function ParamRangeCell:hit_test(cursor)
     end
 end
 
+function ParamRangeCell:is_before_cursor(cursor)
+    return self.range.start_cursor < cursor
+end
+
+function ParamRangeCell:is_after_cursor(cursor)
+    return self.range.stop_cursor > cursor
+end
+
 function ParamRangeCell:hit_search(trace, depth)
     local frame = trace[depth]
     assert(frame.type == 'range_cell')
 
-    return self.range:hit_search(trace, depth + 1)
+    if depth == #trace then
+        return self
+    else
+        return self.range:hit_search(trace, depth + 1)
+    end
 end
 
 function ParamRangeCell:get_start_row()
@@ -136,15 +157,30 @@ function Param:hit_search(trace, depth)
     local frame = trace[depth]
     assert(frame.type == 'param')
 
-    local index_clamped = frame.cell_index + self:find_index_begin() - 1
-    assert(index_clamped <= #self.cells)
-
-    return self.cells[index_clamped]:hit_search(trace, depth + 1)
+    if depth == #trace then
+        return self
+    else
+        local index_clamped = frame.cell_index + self:find_index_begin() - 1
+        assert(index_clamped <= #self.cells)
+        return self.cells[index_clamped]:hit_search(trace, depth + 1)
+    end
 end
 
 function Param:write(builder, wrapped)
     for i = self:find_index_begin(), self:find_index_end() do
         self.cells[i]:write(builder, wrapped)
+    end
+end
+
+function Param:is_before_cursor(cursor)
+    if #self.cells > 0 then
+        return self.cells[1]:is_before_cursor(cursor)
+    end
+end
+
+function Param:is_after_cursor(cursor)
+    if #self.cells > 0 then
+        return self.cells[#self.cells]:is_after_cursor(cursor)
     end
 end
 

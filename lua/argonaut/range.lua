@@ -120,6 +120,23 @@ function Range:hit_test(cursor)
             param_index = 0,
         }
 
+        if cursor == self.start_cursor and self.params[1]:is_after_cursor(cursor) then
+            cursor = cursor:get_next()
+        elseif cursor == self.stop_cursor and self.params[#self.params]:is_before_cursor(cursor) then
+            cursor = cursor:get_previous()
+        end
+
+        for i = 2, #self.params do
+            local current_param = self.params[i]
+            local previous_param = self.params[i - 1]
+            if previous_param:is_before_cursor(cursor) and current_param:is_after_cursor(cursor) then
+                if not previous_param:hit_test(cursor) and not current_param:hit_test(cursor) then
+                    cursor = cursor:get_previous()
+                    break
+                end
+            end
+        end
+
         for i, param in pairs(self.params) do
             local trace = param:hit_test(cursor)
             if trace then
@@ -128,8 +145,6 @@ function Range:hit_test(cursor)
                 return trace
             end
         end
-
-        return {frame}
     end
 end
 
@@ -140,8 +155,8 @@ function Range:hit_search(trace, depth)
     assert(frame.param_count == #self.params)
     assert(frame.param_index <= #self.params)
 
-    if frame.param_index == 0 then
-        return self.start_cursor
+    if depth == #trace then
+        return self
     else
         return self.params[frame.param_index]:hit_search(trace, depth + 1)
     end
