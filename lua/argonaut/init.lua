@@ -42,9 +42,7 @@ end
 local function inspect()
     local range = Range.find_closest()
     if range then
-        local trace = range:hit_test(
-            Cursor.get_current()
-        )
+        local trace = range:hit_test(Cursor.get_current())
         assert(trace)
         dump(trace)
     end

@@ -27,7 +27,28 @@ local function find_closest()
     end
 
     if #ranges > 0 then
-        table.sort(ranges)
+        local range_compare = function(range_1, range_2)
+            local cursor = Cursor:get_current()
+
+            local row_diff_1 = range_1.start_cursor.row - cursor.row
+            local col_diff_1 = range_1.start_cursor.col - cursor.col
+            local row_diff_2 = range_2.start_cursor.row - cursor.row
+            local col_diff_2 = range_2.start_cursor.col - cursor.col
+
+            if row_diff_1 < row_diff_2 then
+                return false
+            elseif row_diff_1 > row_diff_2 then
+                return true
+            elseif col_diff_1 < col_diff_2 then
+                return false
+            elseif col_diff_1 > col_diff_2 then
+                return true
+            else
+                return true
+            end
+        end
+
+        table.sort(ranges, range_compare)
         return ranges[1]
     end
 end
@@ -45,7 +66,7 @@ local function find_at_cursor(start_cursor, parent_range)
             return
         end
 
-        if parent_range and not parent_range:contains(stop_cursor) then
+        if parent_range and not parent_range:contains_cursor(stop_cursor) then
             return
         end
 
@@ -62,7 +83,6 @@ function Range.new(start_cursor, stop_cursor, pairing)
     }
 
     setmetatable(range, Range)
-
     if range:parse() then
         return range
     end
@@ -109,21 +129,11 @@ function Range:parse()
     end
 
     append_param()
-    return self:validate()
-end
-
-function Range:validate()
-    for _, param in ipairs(self.params) do
-        if not param:validate() then
-            return false
-        end
-    end
-
-    return true
+    return self:is_contiguous()
 end
 
 function Range:hit_test(cursor)
-    if self:contains(cursor) then
+    if self:contains_cursor(cursor) then
         local frame = {
             type = 'range',
             pairing = self.pairing.open .. self.pairing.close,
@@ -138,10 +148,10 @@ function Range:hit_test(cursor)
         end
 
         for i = 2, #self.params do
-            local current_param = self.params[i]
+            local param = self.params[i]
             local previous_param = self.params[i - 1]
-            if previous_param:is_before_cursor(cursor) and current_param:is_after_cursor(cursor) then
-                if not previous_param:hit_test(cursor) and not current_param:hit_test(cursor) then
+            if previous_param:is_before_cursor(cursor) and param:is_after_cursor(cursor) then
+                if not previous_param:hit_test(cursor) and not param:hit_test(cursor) then
                     cursor = cursor:get_previous()
                     break
                 end
@@ -249,12 +259,18 @@ function Range:write(builder, wrapped)
     end
 end
 
-function Range:contains(cursor)
+function Range:contains_cursor(cursor)
     return cursor >= self.start_cursor and cursor <= self.stop_cursor
 end
 
-function Range:query_option(name)
-    return Options.query(name, self.pairing)
+function Range:is_contiguous()
+    for _, param in ipairs(self.params) do
+        if not param:is_contiguous() then
+            return false
+        end
+    end
+
+    return true
 end
 
 function Range:is_wrapped()
@@ -263,28 +279,12 @@ function Range:is_wrapped()
             return true
         end
     end
+
     return false
 end
 
-function Range.__lt(range_1, range_2)
-    local cursor = Cursor:get_current()
-
-    local row_diff1 = range_1.start_cursor.row - cursor.row
-    local col_diff1 = range_1.start_cursor.col - cursor.col
-    local row_diff2 = range_2.start_cursor.row - cursor.row
-    local col_diff2 = range_2.start_cursor.col - cursor.col
-
-    if row_diff1 < row_diff2 then
-        return false
-    elseif row_diff1 > row_diff2 then
-        return true
-    elseif col_diff1 < col_diff2 then
-        return false
-    elseif col_diff1 > col_diff2 then
-        return true
-    else
-        return true
-    end
+function Range:query_option(name)
+    return Options.query(name, self.pairing)
 end
 
 return {

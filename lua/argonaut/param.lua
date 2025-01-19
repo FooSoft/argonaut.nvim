@@ -2,8 +2,8 @@ local ParamCursorCell = {}
 ParamCursorCell.__index = ParamCursorCell
 
 function ParamCursorCell.new(cursor)
-    local param_cell_cursor = {cursor = cursor}
-    return setmetatable(param_cell_cursor, ParamCursorCell)
+    local cell = {cursor = cursor}
+    return setmetatable(cell, ParamCursorCell)
 end
 
 function ParamCursorCell:write(builder)
@@ -12,10 +12,7 @@ end
 
 function ParamCursorCell:hit_test(cursor)
     if self.cursor == cursor then
-        return {{
-            char = self.cursor:get_value(),
-            type = 'cursor_cell',
-        }}
+        return {{char = self.cursor:get_value(), type = 'cursor_cell'}}
     end
 end
 
@@ -52,8 +49,8 @@ local ParamRangeCell = {}
 ParamRangeCell.__index = ParamRangeCell
 
 function ParamRangeCell.new(range)
-    local param_cell_range = {range = range}
-    return setmetatable(param_cell_range, ParamRangeCell)
+    local cell = {range = range}
+    return setmetatable(cell, ParamRangeCell)
 end
 
 function ParamRangeCell:write(builder, wrapped)
@@ -119,33 +116,18 @@ function Param:append(cell)
     table.insert(self.cells, cell)
 end
 
-function Param:validate()
-    local index_begin = self:find_index_begin()
-    local index_end = self:find_index_end()
-
-    for i = index_begin, index_end - 1 do
-        local cell = self.cells[i]
-        local next_cell = self.cells[i + 1]
-        if cell:get_stop_row() ~= next_cell:get_start_row() then
-            return false
-        end
-    end
-
-    return true
-end
-
 function Param:hit_test(cursor)
-    local index_begin = self:find_index_begin()
-    local index_end = self:find_index_end()
+    local start_index = self:get_start_index()
+    local stop_index = self:get_stop_index()
 
-    for i = 1, index_begin - 1, 1 do
+    for i = 1, start_index - 1, 1 do
         local cell = self.cells[i]
         if cell:hit_test(cursor) then
             cursor = cursor:get_next()
         end
     end
 
-    for i = #self.cells, index_end + 1, -1 do
+    for i = #self.cells, stop_index + 1, -1 do
         local cell = self.cells[i]
         if cell:hit_test(cursor) then
             cursor = cursor:get_previous()
@@ -158,7 +140,7 @@ function Param:hit_test(cursor)
             table.insert(trace, 1, {
                 type = 'param',
                 cell_count = #self.cells,
-                cell_index = i - index_begin + 1,
+                cell_index = i - start_index + 1,
             })
 
             return trace
@@ -173,14 +155,14 @@ function Param:hit_search(trace, depth)
     if depth == #trace then
         return self
     else
-        local index_clamped = frame.cell_index + self:find_index_begin() - 1
+        local index_clamped = frame.cell_index + self:get_start_index() - 1
         assert(index_clamped <= #self.cells)
         return self.cells[index_clamped]:hit_search(trace, depth + 1)
     end
 end
 
 function Param:write(builder, wrapped)
-    for i = self:find_index_begin(), self:find_index_end() do
+    for i = self:get_start_index(), self:get_stop_index() do
         self.cells[i]:write(builder, wrapped)
     end
 end
@@ -221,7 +203,7 @@ function Param:get_stop_row()
     end
 end
 
-function Param:find_index_begin()
+function Param:get_start_index()
     for i = 1, #self.cells do
         if not self.cells[i]:is_empty() then
             return i
@@ -229,12 +211,27 @@ function Param:find_index_begin()
     end
 end
 
-function Param:find_index_end()
+function Param:get_stop_index()
     for i = #self.cells, 1, -1 do
         if not self.cells[i]:is_empty() then
             return i
         end
     end
+end
+
+function Param:is_contiguous()
+    local start_index = self:get_start_index()
+    local stop_index = self:get_stop_index()
+
+    for i = start_index, stop_index - 1 do
+        local cell = self.cells[i]
+        local next_cell = self.cells[i + 1]
+        if cell:get_stop_row() ~= next_cell:get_start_row() then
+            return false
+        end
+    end
+
+    return true
 end
 
 function Param:is_wrapped()
@@ -247,7 +244,7 @@ function Param:is_wrapped()
 end
 
 function Param:is_empty()
-    return self:find_index_begin() == nil
+    return self:get_start_index() == nil
 end
 
 return Param
