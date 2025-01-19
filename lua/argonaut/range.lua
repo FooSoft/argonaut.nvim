@@ -74,7 +74,7 @@ function Range:parse()
 
     local append_param = function()
         if param and not param:is_empty() then
-            table.insert(self.params, param:stripped())
+            table.insert(self.params, param)
         end
         param = nil
     end
