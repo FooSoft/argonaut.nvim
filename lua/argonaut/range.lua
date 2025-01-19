@@ -28,9 +28,7 @@ local function find_closest()
 
     if #ranges > 0 then
         table.sort(ranges)
-        local range = ranges[1]
-        range:parse()
-        return range
+        return ranges[1]
     end
 end
 
@@ -51,9 +49,7 @@ local function find_at_cursor(start_cursor, parent_range)
             return
         end
 
-        local range = Range.new(start_cursor, stop_cursor, pairing)
-        range:parse()
-        return range
+        return Range.new(start_cursor, stop_cursor, pairing)
     end
 end
 
@@ -65,7 +61,11 @@ function Range.new(start_cursor, stop_cursor, pairing)
         params = {},
     }
 
-    return setmetatable(range, Range)
+    setmetatable(range, Range)
+
+    if range:parse() then
+        return range
+    end
 end
 
 function Range:parse()
@@ -109,6 +109,17 @@ function Range:parse()
     end
 
     append_param()
+    return self:validate()
+end
+
+function Range:validate()
+    for _, param in ipairs(self.params) do
+        if not param:validate() then
+            return false
+        end
+    end
+
+    return true
 end
 
 function Range:hit_test(cursor)

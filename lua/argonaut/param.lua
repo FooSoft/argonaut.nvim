@@ -119,22 +119,35 @@ function Param:append(cell)
     table.insert(self.cells, cell)
 end
 
+function Param:validate()
+    local index_begin = self:find_index_begin()
+    local index_end = self:find_index_end()
+
+    for i = index_begin, index_end - 1 do
+        local cell = self.cells[i]
+        local next_cell = self.cells[i + 1]
+        if cell:get_stop_row() ~= next_cell:get_start_row() then
+            return false
+        end
+    end
+
+    return true
+end
+
 function Param:hit_test(cursor)
     local index_begin = self:find_index_begin()
     local index_end = self:find_index_end()
 
     for i = 1, index_begin - 1, 1 do
         local cell = self.cells[i]
-        local trace = cell:hit_test(cursor)
-        if trace then
+        if cell:hit_test(cursor) then
             cursor = cursor:get_next()
         end
     end
 
     for i = #self.cells, index_end + 1, -1 do
         local cell = self.cells[i]
-        local trace = cell:hit_test(cursor)
-        if trace then
+        if cell:hit_test(cursor) then
             cursor = cursor:get_previous()
         end
     end
