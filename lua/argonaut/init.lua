@@ -38,7 +38,21 @@ local function reflow()
     return true
 end
 
+local function inspect()
+    local range = Range.find_closest()
+    if range then
+        local trace = range:hit_test(Cursor.get_current())
+        assert(trace)
+        print('--- range start ---')
+        dump(trace)
+        print('--- range stop ---')
+    else
+        print('no range found!')
+    end
+end
+
 return {
+    inspect = inspect,
     reflow = reflow,
     setup  = Options.setup,
 }

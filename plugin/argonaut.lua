@@ -8,11 +8,18 @@ if not vim.g.argonaut_loaded then
     end
 
     local function argonaut_reflow()
+        argonaut_reload()
         require('argonaut').reflow()
+    end
+
+    local function argonaut_inspect()
+        argonaut_reload()
+        require('argonaut').inspect()
     end
 
     vim.api.nvim_create_user_command('ArgonautReload', argonaut_reload, {})
     vim.api.nvim_create_user_command('ArgonautReflow', argonaut_reflow, {})
+    vim.api.nvim_create_user_command('ArgonautInspect', argonaut_inspect, {})
 
     vim.g.argonaut_loaded = true
 end

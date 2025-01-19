@@ -32,6 +32,10 @@ function ParamCursorCell:is_empty()
     return not self.cursor:get_value():match('%S')
 end
 
+function ParamCursorCell:get_type()
+    return 'cursor'
+end
+
 local ParamRangeCell = {}
 ParamRangeCell.__index = ParamRangeCell
 
@@ -49,7 +53,7 @@ function ParamRangeCell:hit_test(cursor)
 end
 
 function ParamRangeCell:hit_search(trace, depth)
-    return self.range:hit_search(trace, depth + 1)
+    return self.range:hit_search(trace, depth)
 end
 
 function ParamRangeCell:get_start_row()
@@ -62,6 +66,10 @@ end
 
 function ParamRangeCell:is_empty()
     return false
+end
+
+function ParamRangeCell:get_type()
+    return 'range'
 end
 
 local Param = {}
@@ -97,15 +105,21 @@ function Param:hit_test(cursor)
     for i, cell in ipairs(self.cells) do
         local trace = cell:hit_test(cursor)
         if trace then
-            table.insert(trace, 1, i)
+            table.insert(trace, 1, {
+                index = i,
+                length = #self.cells,
+                subtype = cell:get_type(),
+                type='param_cell',
+            })
+
             return trace
         end
     end
 end
 
 function Param:hit_search(trace, depth)
-    local index = trace[depth]
-    return self.cells[index]:hit_search(trace, depth)
+    local frame = trace[depth]
+    return self.cells[frame.index]:hit_search(trace, depth + 1)
 end
 
 function Param:write(builder, wrapped)

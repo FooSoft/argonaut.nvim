@@ -105,32 +105,35 @@ end
 
 function Range:hit_test(cursor)
     if self:contains(cursor) then
-        local trace = nil
         for i, param in pairs(self.params) do
-            local trace_param = param:hit_test(cursor)
-            if trace_param then
-                trace = {i}
-                for _, trace_param_frame in ipairs(trace_param) do
-                    table.insert(trace, trace_param_frame)
-                end
-                break
+            local trace = param:hit_test(cursor)
+            if trace then
+                table.insert(trace, 1, {
+                    index = i,
+                    length = #self.params,
+                    subtype = self.pairing.open,
+                    type = 'range_param',
+                })
+
+                return trace
             end
         end
 
-        if not trace then
-            trace = {0}
-        end
-
-        return trace
+        return {
+            index = 0,
+            length = #self.params,
+            subtype = self.pairing.open,
+            type = 'range_padding',
+        }
     end
 end
 
 function Range:hit_search(trace, depth)
-    local index = trace[depth]
-    if index == 0 then
+    local frame = trace[depth]
+    if frame.index == 0 then
         return self.start_cursor
     else
-        return self.params[index]:hit_search(trace, depth + 1)
+        return self.params[frame.index]:hit_search(trace, depth + 1)
     end
 end
 
