@@ -1,56 +1,53 @@
 local options_current = {
-    default = {
-        auto_reload = false,
-        brace_last_indent = false,
-        brace_last_wrap = true,
-        brace_pad = false,
-        comma_last = {['{'] = true, ['['] = true},
-        comma_prefix = false,
-        comma_prefix_indent = false,
-    },
-    go = {
-        comma_last = true,
+    auto_reload = false,
+    brace_last_indent = false,
+    brace_last_wrap = true,
+    brace_pad = false,
+    comma_last = {['{'] = true},
+    comma_prefix = false,
+    comma_prefix_indent = false,
+    by_filetype = {
+        go = {comma_last = true},
     },
 }
 
-local function setup(opt)
-    for file_type, file_options in pairs(opt) do
-        local file_options_current = options_current[file_type]
-        if not file_options_current then
-            file_options_current = {}
-            options_current[file_type] = file_options_current
-        end
-
-        for param_name, param_value in pairs(file_options) do
-            file_options_current[param_name] = param_value
+local function merge_table(target, source)
+    for key, value in pairs(source) do
+        if type(target[key]) == 'table' then
+            merge_table(target[key], value)
+        else
+            target[key] = value
         end
     end
 end
 
-local function query(param_name, pairing)
-    local default_param_value = options_current.default[param_name]
-    local param_value = default_param_value
-
-    local file_options_current = options_current[vim.bo.filetype]
-    if file_options_current then
-        param_value = file_options_current[param_name]
-        if param_value == nil then
-            param_value = default_param_value
+local function query_with_pairing(value, pairing)
+    if type(value) == 'table' and pairing then
+        local sub_value = value[pairing.open]
+        if sub_value == nil then
+            value = value['*']
+        else
+            value = sub_value
         end
     end
 
-    if type(param_value) == 'table' then
-        param_value = param_value[pairing.open]
-        if param_value == nil then
-            param_value = default_param_value
+    return value
+end
+
+local function setup(options)
+    merge_table(options_current, options)
+end
+
+local function query(name, pairing)
+    local options_current_by_filetype = options_current.by_filetype[vim.bo.filetype]
+    if options_current_by_filetype then
+        local value = query_with_pairing(options_current_by_filetype[name], pairing)
+        if value ~= nil then
+            return value
         end
     end
 
-    if type(param_value) == 'table' then
-        param_value = param_value[pairing.open]
-    end
-
-    return param_value
+    return query_with_pairing(options_current[name], pairing)
 end
 
 return {
