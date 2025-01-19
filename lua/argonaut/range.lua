@@ -34,18 +34,26 @@ local function find_closest()
     end
 end
 
-local function find_at_cursor(start_cursor)
+local function find_at_cursor(start_cursor, parent_range)
     local pairing = Pairing.from_brace(start_cursor:get_value())
     if pairing then
         local cursor_current = Cursor:get_current()
         start_cursor:set_current()
+
         local stop_cursor = pairing:find_closest(true)
         cursor_current:set_current()
-        if stop_cursor then
-            local range = Range.new(start_cursor, stop_cursor, pairing)
-            range:parse()
-            return range
+
+        if not stop_cursor then
+            return
         end
+
+        if parent_range and not parent_range:contains(stop_cursor) then
+            return
+        end
+
+        local range = Range.new(start_cursor, stop_cursor, pairing)
+        range:parse()
+        return range
     end
 end
 
@@ -86,7 +94,7 @@ function Range:parse()
         if cursor:is_string() or cursor:is_comment() then
             append_param_value(Param.new_cursor_cell(cursor))
         else
-            local range = find_at_cursor(cursor)
+            local range = find_at_cursor(cursor, self)
             if range then
                 append_param_value(Param.new_range_cell(range))
                 cursor = range.stop_cursor
