@@ -7,13 +7,19 @@ if not vim.g.argonaut_loaded then
         end
     end
 
+    local function argonaut_auto_reload()
+        if require('argonaut').query('auto_reload') then
+            argonaut_reload()
+        end
+    end
+
     local function argonaut_reflow()
-        argonaut_reload()
+        argonaut_auto_reload()
         require('argonaut').reflow()
     end
 
     local function argonaut_inspect()
-        argonaut_reload()
+        argonaut_auto_reload()
         require('argonaut').inspect()
     end
 

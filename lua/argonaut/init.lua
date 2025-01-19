@@ -33,6 +33,7 @@ local function reflow()
     builder:output(range.start_cursor.row, range.stop_cursor.row)
 
     local new_range = Range.find_at_cursor(range.start_cursor)
+    assert(new_range)
     new_range:hit_search(trace, 1):set_current()
 
     return true
@@ -43,16 +44,13 @@ local function inspect()
     if range then
         local trace = range:hit_test(Cursor.get_current())
         assert(trace)
-        print('--- range start ---')
         dump(trace)
-        print('--- range stop ---')
-    else
-        print('no range found!')
     end
 end
 
 return {
     inspect = inspect,
     reflow = reflow,
-    setup  = Options.setup,
+    setup = Options.setup,
+    query = Options.query,
 }

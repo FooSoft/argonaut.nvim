@@ -1,5 +1,6 @@
 local options_current = {
     default = {
+        auto_reload = false,
         brace_last_indent = false,
         brace_last_wrap = true,
         brace_pad = false,
