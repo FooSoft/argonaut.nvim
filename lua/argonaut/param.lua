@@ -12,13 +12,17 @@ end
 
 function ParamCursorCell:hit_test(cursor)
     if self.cursor == cursor then
-        return {{type = 'cursor_cell'}}
+        return {{
+            char = self.cursor:get_value(),
+            type = 'cursor_cell',
+        }}
     end
 end
 
 function ParamCursorCell:hit_search(trace, depth)
     local frame = trace[depth]
     assert(frame.type == 'cursor_cell')
+    assert(frame.char == self.cursor:get_value())
 
     return self.cursor
 end
@@ -95,17 +99,32 @@ function Param:append(cell)
 end
 
 function Param:hit_test(cursor)
+    local index_begin = self:find_index_begin()
+    local index_end = self:find_index_end()
+
+    for i = 1, index_begin - 1, 1 do
+        local cell = self.cells[i]
+        local trace = cell:hit_test(cursor)
+        if trace then
+            cursor = cursor:get_next()
+        end
+    end
+
+    for i = #self.cells, index_end + 1, -1 do
+        local cell = self.cells[i]
+        local trace = cell:hit_test(cursor)
+        if trace then
+            cursor = cursor:get_previous()
+        end
+    end
+
     for i, cell in ipairs(self.cells) do
         local trace = cell:hit_test(cursor)
         if trace then
-            local index_clamped = math.min(i, self:find_index_end())
-            index_clamped = math.max(index_clamped, self:find_index_begin())
-            index_clamped = index_clamped - self:find_index_begin() + 1
-
             table.insert(trace, 1, {
                 type = 'param',
                 cell_count = #self.cells,
-                cell_index = index_clamped,
+                cell_index = i - index_begin + 1,
             })
 
             return trace
