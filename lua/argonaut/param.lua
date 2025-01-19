@@ -14,7 +14,7 @@ function ParamCursorCell:hit_test(cursor)
     if self.cursor == cursor then
         return {{
             type = 'cursor_cell',
-            value = self.cursor:get_value(),
+            char = self.cursor:get_value(),
         }}
     end
 end
@@ -111,9 +111,9 @@ function Param:hit_test(cursor)
         local trace = cell:hit_test(cursor)
         if trace then
             table.insert(trace, 1, {
-                index = i,
-                length = #self.cells,
-                type = 'param_cell',
+                type = 'param',
+                cell_count = #self.cells,
+                cell_index = i,
             })
 
             return trace
@@ -123,11 +123,11 @@ end
 
 function Param:hit_search(trace, depth)
     local frame = trace[depth]
-    assert(frame.index <= #self.cells)
-    assert(frame.length == #self.cells)
-    assert(frame.type == 'param_cell')
+    assert(frame.type == 'param')
+    assert(frame.cell_count == #self.cells)
+    assert(frame.cell_index <= #self.cells)
 
-    return self.cells[frame.index]:hit_search(trace, depth + 1)
+    return self.cells[frame.cell_index]:hit_search(trace, depth + 1)
 end
 
 function Param:write(builder, wrapped)
