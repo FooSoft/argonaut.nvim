@@ -111,8 +111,8 @@ function Range:hit_test(cursor)
                 table.insert(trace, 1, {
                     index = i,
                     length = #self.params,
-                    subtype = self.pairing.open,
                     type = 'range_param',
+                    value = self.pairing.open,
                 })
 
                 return trace
@@ -122,14 +122,19 @@ function Range:hit_test(cursor)
         return {
             index = 0,
             length = #self.params,
-            subtype = self.pairing.open,
             type = 'range_padding',
+            value = self.pairing.open,
         }
     end
 end
 
 function Range:hit_search(trace, depth)
     local frame = trace[depth]
+    assert(frame.index <= #self.params)
+    assert(frame.length == #self.params)
+    assert(frame.type == 'range_param')
+    assert(frame.value == self.pairing.open)
+
     if frame.index == 0 then
         return self.start_cursor
     else

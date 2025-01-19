@@ -12,11 +12,17 @@ end
 
 function ParamCursorCell:hit_test(cursor)
     if self.cursor == cursor then
-        return {}
+        return {{
+            type = 'cursor_cell',
+            value = self.cursor:get_value(),
+        }}
     end
 end
 
-function ParamCursorCell:hit_search()
+function ParamCursorCell:hit_search(trace, depth)
+    local frame = trace[depth]
+    assert(frame.type == 'cursor_cell')
+
     return self.cursor
 end
 
@@ -32,10 +38,6 @@ function ParamCursorCell:is_empty()
     return not self.cursor:get_value():match('%S')
 end
 
-function ParamCursorCell:get_type()
-    return 'cursor'
-end
-
 local ParamRangeCell = {}
 ParamRangeCell.__index = ParamRangeCell
 
@@ -49,11 +51,18 @@ function ParamRangeCell:write(builder, wrapped)
 end
 
 function ParamRangeCell:hit_test(cursor)
-    return self.range:hit_test(cursor)
+    local trace = self.range:hit_test(cursor)
+    if trace then
+        table.insert(trace, 1, {type = 'range_cell'})
+        return trace
+    end
 end
 
 function ParamRangeCell:hit_search(trace, depth)
-    return self.range:hit_search(trace, depth)
+    local frame = trace[depth]
+    assert(frame.type == 'range_cell')
+
+    return self.range:hit_search(trace, depth + 1)
 end
 
 function ParamRangeCell:get_start_row()
@@ -66,10 +75,6 @@ end
 
 function ParamRangeCell:is_empty()
     return false
-end
-
-function ParamRangeCell:get_type()
-    return 'range'
 end
 
 local Param = {}
@@ -108,8 +113,7 @@ function Param:hit_test(cursor)
             table.insert(trace, 1, {
                 index = i,
                 length = #self.cells,
-                subtype = cell:get_type(),
-                type='param_cell',
+                type = 'param_cell',
             })
 
             return trace
@@ -119,6 +123,10 @@ end
 
 function Param:hit_search(trace, depth)
     local frame = trace[depth]
+    assert(frame.index <= #self.cells)
+    assert(frame.length == #self.cells)
+    assert(frame.type == 'param_cell')
+
     return self.cells[frame.index]:hit_search(trace, depth + 1)
 end
 
