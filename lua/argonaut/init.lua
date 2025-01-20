@@ -52,16 +52,28 @@ local function inspect()
         local trace = range:hit_test(Cursor.get_current())
         if trace then
             dump(trace)
-        else
-            print('No range trace!')
         end
-    else
-        print('No range found!')
     end
+end
+
+local function object(inner)
+    local range = Range.find_closest()
+    if not range then
+        return
+    end
+
+    local trace = range:hit_test(Cursor.get_current())
+    if not trace then
+        return
+    end
+
+    table.remove(trace, #trace)
+    range:hit_search(trace, 1):select(inner)
 end
 
 return {
     inspect = inspect,
+    object = object,
     reflow = reflow,
     setup = Options.setup,
 }

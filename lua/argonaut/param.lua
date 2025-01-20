@@ -33,12 +33,12 @@ function ParamCursorCell:is_after_cursor(cursor)
     return self.cursor > cursor
 end
 
-function ParamCursorCell:get_start_row()
-    return self.cursor.row
+function ParamCursorCell:get_start_cursor()
+    return self.cursor
 end
 
-function ParamCursorCell:get_stop_row()
-    return self.cursor.row
+function ParamCursorCell:get_stop_cursor()
+    return self.cursor
 end
 
 function ParamCursorCell:is_empty()
@@ -84,12 +84,12 @@ function ParamRangeCell:hit_search(trace, depth)
     end
 end
 
-function ParamRangeCell:get_start_row()
-    return self.range.start_cursor.row
+function ParamRangeCell:get_start_cursor()
+    return self.range.start_cursor
 end
 
-function ParamRangeCell:get_stop_row()
-    return self.range.stop_cursor.row
+function ParamRangeCell:get_stop_cursor()
+    return self.range.stop_cursor
 end
 
 function ParamRangeCell:is_empty()
@@ -191,15 +191,15 @@ function Param:get_next()
     end
 end
 
-function Param:get_start_row()
+function Param:get_start_cursor()
     if #self.cells > 0 then
-        return self.cells[1]:get_start_row()
+        return self.cells[1]:get_start_cursor()
     end
 end
 
-function Param:get_stop_row()
+function Param:get_stop_cursor()
     if #self.cells > 0 then
-        return self.cells[#self.cells]:get_stop_row()
+        return self.cells[#self.cells]:get_stop_cursor()
     end
 end
 
@@ -226,7 +226,7 @@ function Param:is_contiguous()
     for i = start_index, stop_index - 1 do
         local cell = self.cells[i]
         local next_cell = self.cells[i + 1]
-        if cell:get_stop_row() ~= next_cell:get_start_row() then
+        if cell:get_stop_cursor().row ~= next_cell:get_start_cursor().row then
             return false
         end
     end
@@ -237,14 +237,48 @@ end
 function Param:is_wrapped()
     local previous_param = self:get_previous()
     if previous_param then
-        return previous_param:get_stop_row() ~= self:get_start_row()
+        return previous_param:get_stop_cursor().row ~= self:get_start_cursor().row
     else
-        return self.range.start_cursor.row ~= self:get_start_row()
+        return self.range.start_cursor.row ~= self:get_start_cursor().row
     end
 end
 
 function Param:is_empty()
     return self:get_start_index() == nil
+end
+
+function Param:select(inner)
+    if #self.cells == 0 then
+        return
+    end
+
+    local start_cursor = nil
+    local stop_cursor = nil
+
+    if inner then
+        local start_index = self:get_start_index()
+        local stop_index = self:get_stop_index()
+
+        start_cursor = self.cells[start_index]:get_start_cursor()
+        stop_cursor = self.cells[stop_index]:get_stop_cursor()
+    else
+        start_cursor = self.cells[1]:get_start_cursor()
+        stop_cursor = self.cells[#self.cells]:get_stop_cursor()
+
+        local previous_param = self:get_previous()
+        if previous_param then
+            start_cursor = previous_param:get_stop_cursor():get_next()
+        else
+            local next_param = self:get_next()
+            if next_param then
+                stop_cursor = next_param:get_start_cursor():get_previous()
+            end
+        end
+    end
+
+    start_cursor:set_current()
+    vim.cmd(string.format(':normal! v'))
+    stop_cursor:set_current()
 end
 
 return Param
