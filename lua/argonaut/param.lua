@@ -1,30 +1,28 @@
 ParamCursorCell = require('argonaut.param_cursor_cell')
 ParamRangeCell = require('argonaut.param_range_cell')
 
-local Param = {}
+local Param = {type = 'param'}
 Param.__index = Param
 
 function Param.new(range, index, cells)
-    local param = {range = range, index = index, cells = cells or {}}
+    local param = {
+        range = range,
+        index = index,
+        cells = cells or {},
+    }
+
     return setmetatable(param, Param)
 end
 
-function Param.new_cursor_cell(cursor)
-    return ParamCursorCell.new(cursor)
-end
-
-function Param.new_range_cell(range)
-    return ParamRangeCell.new(range)
-end
-
-function Param:append(cell)
-    table.insert(self.cells, cell)
+function Param:write(builder, wrapped)
+    for i = self:get_start_index(), self:get_stop_index() do
+        self.cells[i]:write(builder, wrapped)
+    end
 end
 
 function Param:hit_test(cursor)
+    -- skip cursor over spaces on the left
     local start_index = self:get_start_index()
-    local stop_index = self:get_stop_index()
-
     for i = 1, start_index - 1, 1 do
         local cell = self.cells[i]
         if cell:hit_test(cursor) then
@@ -32,6 +30,8 @@ function Param:hit_test(cursor)
         end
     end
 
+    -- skip cursor over spaces on the right
+    local stop_index = self:get_stop_index()
     for i = #self.cells, stop_index + 1, -1 do
         local cell = self.cells[i]
         if cell:hit_test(cursor) then
@@ -43,7 +43,7 @@ function Param:hit_test(cursor)
         local trace = cell:hit_test(cursor)
         if trace then
             table.insert(trace, 1, {
-                type = 'param',
+                type = self.type,
                 cell_count = #self.cells,
                 cell_index = i - start_index + 1,
             })
@@ -55,21 +55,31 @@ end
 
 function Param:hit_search(trace, depth)
     local frame = trace[depth]
-    assert(frame.type == 'param')
+    assert(frame.type == self.type)
 
     if depth == #trace then
         return self
     else
-        local index_clamped = frame.cell_index + self:get_start_index() - 1
-        assert(index_clamped <= #self.cells)
-        return self.cells[index_clamped]:hit_search(trace, depth + 1)
+        local unpadded_index = frame.cell_index + self:get_start_index() - 1
+        assert(unpadded_index <= #self.cells)
+        return self.cells[unpadded_index]:hit_search(trace, depth + 1)
     end
 end
 
-function Param:write(builder, wrapped)
-    for i = self:get_start_index(), self:get_stop_index() do
-        self.cells[i]:write(builder, wrapped)
+function Param:is_empty()
+    return self:get_start_index() == nil
+end
+
+function Param:is_contiguous()
+    for i = self:get_start_index(), self:get_stop_index() - 1 do
+        local cell = self.cells[i]
+        local next_cell = self.cells[i + 1]
+        if cell:get_stop_cursor().row ~= next_cell:get_start_cursor().row then
+            return false
+        end
     end
+
+    return true
 end
 
 function Param:is_before_cursor(cursor)
@@ -84,18 +94,6 @@ function Param:is_after_cursor(cursor)
     end
 end
 
-function Param:get_previous()
-    if self.index > 1 then
-        return self.range.params[self.index - 1]
-    end
-end
-
-function Param:get_next()
-    if self.index < #self.range.params then
-        return self.range.params[self.index + 1]
-    end
-end
-
 function Param:get_start_cursor()
     if #self.cells > 0 then
         return self.cells[1]:get_start_cursor()
@@ -105,6 +103,18 @@ end
 function Param:get_stop_cursor()
     if #self.cells > 0 then
         return self.cells[#self.cells]:get_stop_cursor()
+    end
+end
+
+function Param:get_previous()
+    if self.index > 1 then
+        return self.range.params[self.index - 1]
+    end
+end
+
+function Param:get_next()
+    if self.index < #self.range.params then
+        return self.range.params[self.index + 1]
     end
 end
 
@@ -122,34 +132,6 @@ function Param:get_stop_index()
             return i
         end
     end
-end
-
-function Param:is_contiguous()
-    local start_index = self:get_start_index()
-    local stop_index = self:get_stop_index()
-
-    for i = start_index, stop_index - 1 do
-        local cell = self.cells[i]
-        local next_cell = self.cells[i + 1]
-        if cell:get_stop_cursor().row ~= next_cell:get_start_cursor().row then
-            return false
-        end
-    end
-
-    return true
-end
-
-function Param:is_wrapped()
-    local previous_param = self:get_previous()
-    if previous_param then
-        return previous_param:get_stop_cursor().row ~= self:get_start_cursor().row
-    else
-        return self.range.start_cursor.row ~= self:get_start_cursor().row
-    end
-end
-
-function Param:is_empty()
-    return self:get_start_index() == nil
 end
 
 function Param:select(inner)
@@ -188,6 +170,18 @@ function Param:select(inner)
     start_cursor:set_current()
     vim.cmd(string.format(':normal! v'))
     stop_cursor:set_current()
+end
+
+function Param.new_cursor_cell(cursor)
+    return ParamCursorCell.new(cursor)
+end
+
+function Param.new_range_cell(range)
+    return ParamRangeCell.new(range)
+end
+
+function Param:append_cell(cell)
+    table.insert(self.cells, cell)
 end
 
 return Param

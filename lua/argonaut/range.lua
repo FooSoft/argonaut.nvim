@@ -3,7 +3,7 @@ local Options = require('argonaut.options')
 local Pairing = require('argonaut.pairing')
 local Param   = require('argonaut.param')
 
-local Range = {}
+local Range = {type = 'range'}
 Range.__index = Range
 
 local function find_closest_pair(pairing)
@@ -102,7 +102,7 @@ function Range:parse()
             param = Param.new(self, param_index)
             param_index = param_index + 1
         end
-        param:append(cell)
+        param:append_cell(cell)
     end
 
     local append_param = function()
@@ -143,7 +143,7 @@ function Range:hit_test(cursor)
     end
 
     local frame = {
-        type = 'range',
+        type = self.type,
         pairing = self.pairing.open .. self.pairing.close,
         param_count = #self.params,
         param_index = 0,
@@ -178,7 +178,7 @@ end
 
 function Range:hit_search(trace, depth)
     local frame = trace[depth]
-    assert(frame.type == 'range')
+    assert(frame.type == self.type)
     assert(frame.pairing == self.pairing.open .. self.pairing.close)
     assert(frame.param_count == #self.params)
     assert(frame.param_index <= #self.params)
@@ -267,7 +267,7 @@ function Range:write(builder, wrapped)
 end
 
 function Range:contains_cursor(cursor)
-    return cursor >= self.start_cursor and cursor <= self.stop_cursor
+    return cursor > self.start_cursor and cursor < self.stop_cursor
 end
 
 function Range:is_contiguous()
@@ -281,10 +281,13 @@ function Range:is_contiguous()
 end
 
 function Range:is_wrapped()
+    local previous_cursor = self.start_cursor
     for _, param in ipairs(self.params) do
-        if param:is_wrapped() then
+        local cursor = param:get_start_cursor()
+        if cursor.row ~= previous_cursor.row then
             return true
         end
+        previous_cursor = cursor
     end
 
     return false
