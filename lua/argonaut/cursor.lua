@@ -51,26 +51,37 @@ function Cursor:is_string()
     return name:find('String$') ~= nil
 end
 
-function Cursor:get_previous()
+function Cursor:get_previous(allow_line_break)
     if self > Cursor.get_first() then
         local previous_cursor = Cursor.new(self.row, self.col - 1)
 
         if previous_cursor.col < 1 then
             previous_cursor.row = previous_cursor.row - 1
             local line = vim.fn.getline(previous_cursor.row )
-            previous_cursor.col = #line
+
+            local max_length = #line
+            if allow_line_break then
+                max_length = max_length + 1
+            end
+
+            previous_cursor.col = max_length
         end
 
         return previous_cursor
     end
 end
 
-function Cursor:get_next()
+function Cursor:get_next(allow_line_break)
     if self < Cursor.get_last() then
         local line = vim.fn.getline(self.row)
         local next_cursor = Cursor.new(self.row, self.col + 1)
 
-        if next_cursor.col > #line then
+        local max_length = #line
+        if allow_line_break then
+            max_length = max_length + 1
+        end
+
+        if next_cursor.col > max_length then
             next_cursor.row = next_cursor.row + 1
             next_cursor.col = 1
         end
