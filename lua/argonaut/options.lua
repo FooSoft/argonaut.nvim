@@ -1,11 +1,11 @@
 local options_current = {
-    auto_reload = false,
     brace_last_indent = false,
     brace_last_wrap = true,
     brace_pad = false,
     comma_last = {['{'] = true},
     comma_prefix = false,
     comma_prefix_indent = false,
+    object_char = 'a',
     by_filetype = {
         go = {comma_last = true},
     },
@@ -34,10 +34,6 @@ local function query_with_pairing(value, pairing)
     return value
 end
 
-local function setup(options)
-    merge_table(options_current, options)
-end
-
 local function query(name, pairing)
     local options_current_by_filetype = options_current.by_filetype[vim.bo.filetype]
     if options_current_by_filetype then
@@ -48,6 +44,26 @@ local function query(name, pairing)
     end
 
     return query_with_pairing(options_current[name], pairing)
+end
+
+local function setup(options)
+    merge_table(options_current, options)
+
+    local object_char = query('object_char')
+    for _, mode in ipairs({'x', 'o'}) do
+        vim.api.nvim_set_keymap(
+            mode,
+            'i' .. object_char,
+            ':<C-u>ArgonautInnerObject<cr>',
+            {noremap = true, silent = true}
+        )
+        vim.api.nvim_set_keymap(
+            mode,
+            'a' .. object_char,
+            ':<C-u>ArgonautOuterObject<cr>',
+            {noremap = true, silent = true}
+        )
+    end
 end
 
 return {

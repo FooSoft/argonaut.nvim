@@ -11,13 +11,11 @@ if not vim.g.argonaut_loaded then
         require('argonaut').inspect()
     end
 
-    local function argonaut_object_inner()
-        argonaut_reload()
+    local function argonaut_inner_object()
         require('argonaut').object(true)
     end
 
-    local function argonaut_object_outer()
-        argonaut_reload()
+    local function argonaut_outer_object()
         require('argonaut').object(false)
     end
 
@@ -29,12 +27,12 @@ if not vim.g.argonaut_loaded then
         require('argonaut').reflow(true)
     end
 
-    vim.api.nvim_create_user_command('ArgonautInspect', argonaut_inspect, {})
-    vim.api.nvim_create_user_command('ArgonautObjectInner', argonaut_object_inner, {})
-    vim.api.nvim_create_user_command('ArgonautObjectOuter', argonaut_object_outer, {})
-    vim.api.nvim_create_user_command('ArgonautReflow', argonaut_reflow, {})
-    vim.api.nvim_create_user_command('ArgonautReload', argonaut_reload, {})
     vim.api.nvim_create_user_command('ArgonautToggle', argonaut_toggle, {})
+    vim.api.nvim_create_user_command('ArgonautInnerObject', argonaut_inner_object, {})
+    vim.api.nvim_create_user_command('ArgonautOuterObject', argonaut_outer_object, {})
+    vim.api.nvim_create_user_command('ArgonautReflow', argonaut_reflow, {})
+    vim.api.nvim_create_user_command('ArgonautInspect', argonaut_inspect, {})
+    vim.api.nvim_create_user_command('ArgonautReload', argonaut_reload, {})
 
     vim.g.argonaut_loaded = true
 end
