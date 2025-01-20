@@ -118,17 +118,19 @@ function Param:get_next()
     end
 end
 
-function Param:get_start_index()
+function Param:get_start_index(row_limit)
     for i = 1, #self.cells do
-        if not self.cells[i]:is_empty() then
+        local cell = self.cells[i]
+        if not cell:is_empty() or row_limit and cell:get_start_cursor().row ~= row_limit then
             return i
         end
     end
 end
 
-function Param:get_stop_index()
+function Param:get_stop_index(row_limit)
     for i = #self.cells, 1, -1 do
-        if not self.cells[i]:is_empty() then
+        local cell = self.cells[i]
+        if not cell:is_empty() or row_limit and cell:get_stop_cursor().row ~= row_limit then
             return i
         end
     end
@@ -157,7 +159,7 @@ function Param:select(inner)
         else
             local next_param = self:get_next()
             if next_param then
-                local start_index = next_param:get_start_index()
+                local start_index = next_param:get_start_index(self.cells[#self.cells]:get_stop_cursor().row)
                 start_cursor = self.cells[1]:get_start_cursor()
                 stop_cursor = next_param.cells[start_index]:get_start_cursor():get_previous()
             else
