@@ -262,17 +262,16 @@ function Param:select(inner)
         local stop_index = self:get_stop_index()
         stop_cursor = self.cells[stop_index]:get_stop_cursor()
     else
-        start_cursor = self.cells[1]:get_start_cursor()
-        stop_cursor = self.cells[#self.cells]:get_stop_cursor()
-
         local previous_param = self:get_previous()
         if previous_param then
             local stop_index = previous_param:get_stop_index()
             start_cursor = previous_param.cells[stop_index]:get_stop_cursor():get_next()
+            stop_cursor = self.cells[#self.cells]:get_stop_cursor()
         else
             local next_param = self:get_next()
             if next_param then
                 local start_index = next_param:get_start_index()
+                start_cursor = self.cells[1]:get_start_cursor()
                 stop_cursor = next_param.cells[start_index]:get_start_cursor():get_previous()
             else
                 start_cursor = self.range.start_cursor:get_next()
