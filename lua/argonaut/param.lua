@@ -157,21 +157,23 @@ function Param:select(inner)
             start_cursor = previous_param.cells[stop_index]:get_stop_cursor():get_next()
             stop_cursor = self.cells[#self.cells]:get_stop_cursor()
         else
+            start_cursor = self.range.start_cursor:get_next(true)
             local next_param = self:get_next()
             if next_param then
                 local start_index = next_param:get_start_index(self.cells[#self.cells]:get_stop_cursor().row)
-                start_cursor = self.cells[1]:get_start_cursor()
                 stop_cursor = next_param.cells[start_index]:get_start_cursor():get_previous()
             else
-                start_cursor = self.range.start_cursor:get_next()
-                stop_cursor = self.range.stop_cursor:get_previous()
+                stop_cursor = self.range.stop_cursor:get_previous(true)
             end
         end
     end
 
+    local ve_old = vim.opt.virtualedit
+    vim.opt.virtualedit = 'onemore'
     start_cursor:set_current()
     vim.cmd(string.format(':normal! v'))
     stop_cursor:set_current()
+    vim.opt.virtualedit = ve_old
 end
 
 function Param.new_cursor_cell(cursor)
