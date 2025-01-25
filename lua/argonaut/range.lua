@@ -277,7 +277,7 @@ function Range:write(builder, wrapped)
 end
 
 function Range:contains_cursor(cursor)
-    return cursor > self.start_cursor and cursor < self.stop_cursor
+    return cursor >= self.start_cursor and cursor <= self.stop_cursor
 end
 
 function Range:is_contiguous()
