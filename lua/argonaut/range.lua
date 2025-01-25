@@ -112,6 +112,16 @@ function Range:parse()
         param = nil
     end
 
+    if self.start_cursor.row == self.stop_cursor.row then
+        if self.stop_cursor.col - self.start_cursor.col > self:query_option('limit_cols') then
+            return
+        end
+    else
+        if self.stop_cursor.row - self.start_cursor.row > self:query_option('limit_rows') then
+            return
+        end
+    end
+
     local cursor = self.start_cursor:get_next()
     while cursor ~= self.stop_cursor do
         local value = cursor:get_value()

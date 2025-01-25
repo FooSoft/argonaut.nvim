@@ -5,6 +5,8 @@ local options_current = {
     comma_last = {['{'] = true},
     comma_prefix = false,
     comma_prefix_indent = false,
+    limit_cols = 512,
+    limit_rows = 64,
     object_char = 'a',
     by_filetype = {
         go = {comma_last = true},
