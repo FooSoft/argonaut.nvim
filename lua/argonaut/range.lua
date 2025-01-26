@@ -67,7 +67,7 @@ local function find_at_cursor(start_cursor, parent_range)
             return
         end
 
-        if parent_range and not parent_range:contains_cursor(stop_cursor) then
+        if parent_range and parent_range.stop_cursor <= stop_cursor then
             return
         end
 
@@ -132,6 +132,7 @@ function Range:parse()
             local range = find_at_cursor(cursor, self)
             if range then
                 append_param_value(Param.new_range_cell(range))
+                assert(range.stop_cursor < self.stop_cursor)
                 cursor = range.stop_cursor
             elseif value == ',' then
                 append_param()

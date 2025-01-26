@@ -44,7 +44,7 @@ end
 
 function Pairing:find_closest(forward)
     -- See flags: https://neovim.io/doc/user/builtin.html#search()
-    local flags = 'Wnbc'
+    local flags = 'Wnb'
     if forward then
         flags = 'Wn'
     end
