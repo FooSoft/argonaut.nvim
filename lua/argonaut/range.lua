@@ -293,11 +293,11 @@ end
 function Range:is_wrapped()
     local previous_cursor = self.start_cursor
     for _, param in ipairs(self.params) do
-        local cursor = param:get_start_cursor()
-        if cursor.row ~= previous_cursor.row then
+        local start_cursor = param:get_start_cursor()
+        if start_cursor.row ~= previous_cursor.row then
             return true
         end
-        previous_cursor = cursor
+        previous_cursor = param:get_stop_cursor()
     end
 
     return false

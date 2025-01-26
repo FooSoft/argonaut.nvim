@@ -6,10 +6,6 @@ function ParamCursorCell.new(cursor)
     return setmetatable(cell, ParamCursorCell)
 end
 
-function ParamCursorCell:get_cursor()
-    return self.cursor
-end
-
 function ParamCursorCell:write(builder, _)
     builder:write(self.cursor:get_value())
 end
@@ -26,7 +22,7 @@ function ParamCursorCell:hit_search(trace, depth)
     assert(frame.char == self.cursor:get_value())
     assert(depth == #trace)
 
-    return self
+    return self.cursor
 end
 
 function ParamCursorCell:is_empty()

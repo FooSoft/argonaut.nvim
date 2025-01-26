@@ -160,7 +160,7 @@ function Param:select(inner)
             start_cursor = self.range.start_cursor:get_next(true)
             local next_param = self:get_next()
             if next_param then
-                local start_index = next_param:get_start_index(self.cells[#self.cells]:get_stop_cursor().row)
+                local start_index = next_param:get_start_index()
                 stop_cursor = next_param.cells[start_index]:get_start_cursor():get_previous()
             else
                 stop_cursor = self.range.stop_cursor:get_previous(true)

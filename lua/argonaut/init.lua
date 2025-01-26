@@ -38,7 +38,7 @@ local function reflow(toggle_wrapping)
     local new_range = Range.find_at_cursor(range.start_cursor)
     assert(new_range)
     if trace then
-        new_range:hit_search(trace, 1):get_cursor():set_current()
+        new_range:hit_search(trace, 1):set_current()
     else
         new_range.start_cursor:set_current()
     end

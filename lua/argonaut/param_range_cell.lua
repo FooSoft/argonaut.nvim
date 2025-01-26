@@ -6,23 +6,21 @@ function ParamRangeCell.new(range)
     return setmetatable(cell, ParamRangeCell)
 end
 
-function ParamRangeCell:get_cursor()
-    return self.range.start_cursor
-end
-
 function ParamRangeCell:write(builder, wrapped)
     self.range:write(builder, wrapped)
 end
 
 function ParamRangeCell:hit_test(cursor)
-    if cursor == self.range.start_cursor or cursor == self.range.stop_cursor then
-        return {{type = self.type}}
-    end
-
-    local trace = self.range:hit_test(cursor)
-    if trace then
-        table.insert(trace, 1, {type = self.type})
-        return trace
+    if cursor == self.range.start_cursor then
+        return {{type = self.type, mode = 'before'}}
+    elseif cursor == self.range.stop_cursor then
+        return {{type = self.type, mode = 'after'}}
+    else
+        local trace = self.range:hit_test(cursor)
+        if trace then
+            table.insert(trace, 1, {type = self.type, mode = 'inside'})
+            return trace
+        end
     end
 end
 
@@ -31,8 +29,13 @@ function ParamRangeCell:hit_search(trace, depth)
     assert(frame.type == self.type)
 
     if depth == #trace then
-        return self
+        if frame.mode == 'before' then
+            return self.range.start_cursor
+        elseif frame.mode == 'after' then
+            return self.range.stop_cursor
+        end
     else
+        assert(frame.mode == 'inside')
         return self.range:hit_search(trace, depth + 1)
     end
 end
