@@ -51,21 +51,13 @@ end
 local function setup(options)
     merge_table(options_current, options)
 
+    local map_options = {noremap = true, silent = true}
     local object_char = query('object_char')
-    for _, mode in ipairs({'x', 'o'}) do
-        vim.api.nvim_set_keymap(
-            mode,
-            'i' .. object_char,
-            ':<C-u>ArgonautInnerObject<cr>',
-            {noremap = true, silent = true}
-        )
-        vim.api.nvim_set_keymap(
-            mode,
-            'a' .. object_char,
-            ':<C-u>ArgonautOuterObject<cr>',
-            {noremap = true, silent = true}
-        )
-    end
+
+    vim.api.nvim_set_keymap('x', 'i' .. object_char, ':<C-u>ArgonautInnerObject<cr>', map_options)
+    vim.api.nvim_set_keymap('x', 'a' .. object_char, ':<C-u>ArgonautOuterObject<cr>', map_options)
+    vim.api.nvim_set_keymap('o', 'i' .. object_char, ':<C-u>ArgonautInnerObject<cr>', map_options)
+    vim.api.nvim_set_keymap('o', 'a' .. object_char, ':<C-u>ArgonautOuterObject<cr>', map_options)
 end
 
 return {
