@@ -6,11 +6,19 @@ function ParamRangeCell.new(range)
     return setmetatable(cell, ParamRangeCell)
 end
 
+function ParamRangeCell:get_cursor()
+    return self.range.start_cursor
+end
+
 function ParamRangeCell:write(builder, wrapped)
     self.range:write(builder, wrapped)
 end
 
 function ParamRangeCell:hit_test(cursor)
+    if cursor == self.range.start_cursor or cursor == self.range.stop_cursor then
+        return {{type = self.type}}
+    end
+
     local trace = self.range:hit_test(cursor)
     if trace then
         table.insert(trace, 1, {type = self.type})

@@ -6,6 +6,10 @@ function ParamCursorCell.new(cursor)
     return setmetatable(cell, ParamCursorCell)
 end
 
+function ParamCursorCell:get_cursor()
+    return self.cursor
+end
+
 function ParamCursorCell:write(builder, _)
     builder:write(self.cursor:get_value())
 end
