@@ -106,10 +106,13 @@ function Range:parse()
     end
 
     local append_param = function()
+        local contiguous = true
         if param and not param:is_empty() then
             table.insert(self.params, param)
+            contiguous = param:is_contiguous()
         end
         param = nil
+        return contiguous
     end
 
     if self.start_cursor.row == self.stop_cursor.row then
@@ -135,7 +138,9 @@ function Range:parse()
                 assert(range.stop_cursor < self.stop_cursor)
                 cursor = range.stop_cursor
             elseif value == ',' then
-                append_param()
+                if not append_param() then
+                    return false
+                end
             else
                 append_param_value(Param.new_cursor_cell(cursor))
             end
@@ -144,8 +149,7 @@ function Range:parse()
         cursor = cursor:get_next()
     end
 
-    append_param()
-    return self:is_contiguous()
+    return append_param()
 end
 
 function Range:hit_test(cursor)
