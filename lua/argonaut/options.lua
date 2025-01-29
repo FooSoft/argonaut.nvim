@@ -7,7 +7,6 @@ local options_current = {
     comma_prefix_indent = false,
     limit_cols = 512,
     limit_rows = 64,
-    object_char = 'a',
     by_filetype = {
         go = {comma_last = true},
     },
@@ -50,14 +49,6 @@ end
 
 local function setup(options)
     merge_table(options_current, options)
-
-    local map_options = {noremap = true, silent = true}
-    local object_char = query('object_char')
-
-    vim.api.nvim_set_keymap('x', 'i' .. object_char, ':<C-u>ArgonautInnerObject<cr>', map_options)
-    vim.api.nvim_set_keymap('x', 'a' .. object_char, ':<C-u>ArgonautOuterObject<cr>', map_options)
-    vim.api.nvim_set_keymap('o', 'i' .. object_char, ':<C-u>ArgonautInnerObject<cr>', map_options)
-    vim.api.nvim_set_keymap('o', 'a' .. object_char, ':<C-u>ArgonautOuterObject<cr>', map_options)
 end
 
 return {
