@@ -1,3 +1,4 @@
+Cursor = require('argonaut.cursor')
 ParamCursorCell = require('argonaut.param_cursor_cell')
 ParamRangeCell = require('argonaut.param_range_cell')
 
@@ -134,8 +135,11 @@ function Param:get_right_padding()
     end
 end
 
-function Param:select(inner)
+function Param:object(mode)
     assert(#self.cells > 0)
+
+    local previous_param = self:get_previous()
+    local next_param = self:get_next()
 
     local get_first_unpadded_cell = function(param)
         return param.cells[param:get_left_padding() + 1]
@@ -145,18 +149,20 @@ function Param:select(inner)
         return param.cells[#param.cells - param:get_right_padding()]
     end
 
-    local start_cursor = nil
+    local start_cursor = Cursor:get_current()
     local stop_cursor = nil
-    if inner then
+    local select = false
+
+    if mode == 'inner' then
+        select = true
         start_cursor = get_first_unpadded_cell(self):get_start_cursor()
         stop_cursor = get_last_unpadded_cell(self):get_stop_cursor()
-    else
-        local previous_param = self:get_previous()
+    elseif mode == 'outer' then
+        select = true
         if previous_param then
             start_cursor = get_last_unpadded_cell(previous_param):get_stop_cursor():get_next()
             stop_cursor = self.cells[#self.cells]:get_stop_cursor()
         else
-            local next_param = self:get_next()
             if next_param then
                 start_cursor = get_first_unpadded_cell(self):get_start_cursor()
                 stop_cursor = get_first_unpadded_cell(next_param):get_start_cursor():get_previous()
@@ -165,14 +171,30 @@ function Param:select(inner)
                 stop_cursor = self.range.stop_cursor:get_previous(true)
             end
         end
+    elseif mode == 'previous' then
+        if previous_param then
+            stop_cursor = get_first_unpadded_cell(previous_param):get_start_cursor()
+        end
+    elseif mode == 'next' then
+        if next_param then
+            stop_cursor = get_first_unpadded_cell(next_param):get_start_cursor()
+        end
+    else
+        print('invalid object mode')
     end
 
-    local virtualedit_old = vim.opt.virtualedit
-    vim.opt.virtualedit = 'onemore'
-    start_cursor:set_current()
-    vim.cmd(string.format(':normal! v'))
-    stop_cursor:set_current()
-    vim.opt.virtualedit = virtualedit_old
+    if stop_cursor then
+        local virtualedit_old = vim.opt.virtualedit
+        vim.opt.virtualedit = 'onemore'
+
+        if select then
+            start_cursor:set_current()
+            vim.cmd(string.format(':normal! v'))
+        end
+
+        stop_cursor:set_current()
+        vim.opt.virtualedit = virtualedit_old
+    end
 end
 
 function Param.new_cursor_cell(cursor)

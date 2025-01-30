@@ -56,7 +56,7 @@ local function inspect()
     end
 end
 
-local function object(inner)
+local function object(mode)
     local range = Range.find_closest()
     if not range then
         return
@@ -68,7 +68,7 @@ local function object(inner)
     end
 
     table.remove(trace, #trace)
-    range:hit_search(trace, 1):select(inner)
+    range:hit_search(trace, 1):object(mode)
 end
 
 return {
