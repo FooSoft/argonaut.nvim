@@ -6,23 +6,16 @@ local Param   = require('argonaut.param')
 local Range = {type = 'range'}
 Range.__index = Range
 
-local function find_closest_pair(pairing)
-    local stop_cursor = pairing:find_closest(true)
-    if stop_cursor then
-        local start_cursor = pairing:find_closest(false)
-        if start_cursor then
-            return Range.new(start_cursor, stop_cursor, pairing)
-        end
-    end
-end
-
 local function find_closest()
     local ranges = {}
     for _, brace in pairs({'(', '[', '{', '<'}) do
         local pairing = Pairing.from_brace(brace)
-        local range = find_closest_pair(pairing)
-        if range then
-            table.insert(ranges, range)
+        local pair = pairing:find_closest_pair()
+        if pair then
+            local range = Range.new(pair.start_cursor, pair.stop_cursor, pairing)
+            if range then
+                table.insert(ranges, range)
+            end
         end
     end
 

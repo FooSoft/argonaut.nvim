@@ -42,6 +42,16 @@ function Pairing:get_escaped()
     )
 end
 
+function Pairing:find_closest_pair()
+    local stop_cursor = self:find_closest(true)
+    if stop_cursor then
+        local start_cursor = self:find_closest(false)
+        if start_cursor then
+            return {start_cursor = start_cursor, stop_cursor = stop_cursor}
+        end
+    end
+end
+
 function Pairing:find_closest(forward)
     -- See flags: https://neovim.io/doc/user/builtin.html#search()
     local flags = 'Wnb'
