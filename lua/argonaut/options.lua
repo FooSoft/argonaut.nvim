@@ -2,7 +2,6 @@ local options_current = {
     brace_last_indent = false,
     brace_last_wrap = true,
     brace_pad = false,
-    comma_last = {['{'] = true},
     comma_prefix = false,
     comma_prefix_indent = false,
     limit_cols = 512,
