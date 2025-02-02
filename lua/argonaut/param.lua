@@ -179,8 +179,12 @@ function Param:object(mode)
         if next_param then
             stop_cursor = get_first_unpadded_cell(next_param):get_start_cursor()
         end
+    elseif mode == 'begin' then
+        stop_cursor = get_first_unpadded_cell(self):get_start_cursor()
+    elseif mode == 'end' then
+        stop_cursor = get_last_unpadded_cell(self):get_stop_cursor()
     else
-        print('invalid object mode')
+        assert(false, 'invalid object mode')
     end
 
     if stop_cursor then
