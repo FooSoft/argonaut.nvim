@@ -49,6 +49,7 @@ end
 local function inspect()
     local range = Range.find_closest()
     if range then
+        range:dump()
         local trace = range:hit_test(Cursor.get_current())
         if trace then
             dump(trace)

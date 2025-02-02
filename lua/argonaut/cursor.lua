@@ -126,4 +126,8 @@ function Cursor.__eq(cursor_1, cursor_2)
     return cursor_1.row == cursor_2.row and cursor_1.col == cursor_2.col
 end
 
+function Cursor:to_string()
+    return string.format('(%d, %d, "%s")', self.row, self.col, self:get_value())
+end
+
 return Cursor

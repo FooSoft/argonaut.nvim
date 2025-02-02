@@ -312,6 +312,23 @@ function Range:query_option(name)
     return Options.query(name, self.pairing)
 end
 
+function Range:dump(depth)
+    depth = depth or 0
+    local indent = string.rep(' ', depth * vim.opt.shiftwidth:get())
+
+    print(string.format(
+        '%sRange: start=%s stop=%s',
+        indent,
+        self.start_cursor:to_string(),
+        self.stop_cursor:to_string()
+    ))
+
+    for i, param in ipairs(self.params) do
+        print(string.format('%sparams[%d]', indent, i))
+        param:dump(depth + 1)
+    end
+end
+
 return {
     find_closest = find_closest,
     find_at_cursor = find_at_cursor,

@@ -45,4 +45,15 @@ function ParamCursorCell:get_stop_cursor()
     return self.cursor
 end
 
+function ParamCursorCell:dump(depth)
+    depth = depth or 0
+    local indent = string.rep(' ', depth * vim.opt.shiftwidth:get())
+
+    print(string.format(
+        '%sParamCursorCell %s',
+        indent,
+        self.cursor:to_string()
+    ))
+end
+
 return ParamCursorCell

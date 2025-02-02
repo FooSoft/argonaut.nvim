@@ -60,4 +60,15 @@ function ParamRangeCell:get_stop_cursor()
     return self.range.stop_cursor
 end
 
+function ParamRangeCell:dump(depth)
+    depth = depth or 0
+    local indent = string.rep(' ', depth * vim.opt.shiftwidth:get())
+
+    print(string.format(
+        '%sParamRangeCell',
+        indent))
+
+    self.range:dump(depth + 1)
+end
+
 return ParamRangeCell
