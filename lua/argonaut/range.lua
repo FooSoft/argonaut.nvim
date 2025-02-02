@@ -6,11 +6,11 @@ local Param   = require('argonaut.param')
 local Range = {type = 'range'}
 Range.__index = Range
 
-local function find_closest()
+local function find_closest(allow_current)
     local ranges = {}
     for _, brace in pairs({'(', '[', '{', '<'}) do
         local pairing = Pairing.from_brace(brace)
-        local pair = pairing:find_closest_pair()
+        local pair = pairing:find_closest_pair(allow_current)
         if pair then
             local range = Range.new(pair.start_cursor, pair.stop_cursor, pairing)
             if range then
@@ -53,7 +53,7 @@ local function find_at_cursor(start_cursor, parent_range)
         local cursor_current = Cursor:get_current()
         start_cursor:set_current()
 
-        local stop_cursor = pairing:find_closest(true)
+        local stop_cursor = pairing:find_closest(true ,true)
         cursor_current:set_current()
 
         if not stop_cursor then

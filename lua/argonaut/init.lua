@@ -4,7 +4,7 @@ local Options = require('argonaut.options')
 local Range   = require('argonaut.range')
 
 local function reflow(toggle_wrapping)
-    local range = Range.find_closest()
+    local range = Range.find_closest(false)
     if not range then
         return false
     end
@@ -47,7 +47,7 @@ local function reflow(toggle_wrapping)
 end
 
 local function inspect()
-    local range = Range.find_closest()
+    local range = Range.find_closest(false)
     if range then
         range:dump()
         local trace = range:hit_test(Cursor.get_current())
@@ -58,18 +58,14 @@ local function inspect()
 end
 
 local function object(mode)
-    local range = Range.find_closest()
-    if not range then
-        return
+    local range = Range.find_closest(false)
+    if range then
+        local trace = range:hit_test(Cursor.get_current())
+        if trace then
+            table.remove(trace, #trace)
+            range:hit_search(trace, 1):object(mode)
+        end
     end
-
-    local trace = range:hit_test(Cursor.get_current())
-    if not trace then
-        return
-    end
-
-    table.remove(trace, #trace)
-    range:hit_search(trace, 1):object(mode)
 end
 
 return {

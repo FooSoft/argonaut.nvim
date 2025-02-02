@@ -42,17 +42,30 @@ function Pairing:get_escaped()
     )
 end
 
-function Pairing:find_closest_pair()
-    local stop_cursor = self:find_closest(true)
+function Pairing:find_closest_pair(allow_current)
+    local stop_cursor = self:find_closest(true, allow_current)
     if stop_cursor then
-        local start_cursor = self:find_closest(false)
+        local start_cursor = self:find_closest(false, allow_current)
         if start_cursor then
             return {start_cursor = start_cursor, stop_cursor = stop_cursor}
         end
     end
 end
 
-function Pairing:find_closest(forward)
+function Pairing:find_closest(forward, allow_current)
+    local ignore_list = {}
+
+    if not allow_current then
+        local cursor_1 = Cursor:get_current()
+        local pairing = Pairing.from_brace(cursor_1:get_value())
+        if pairing then
+            local cursor_2 = pairing:find_closest(forward, true)
+            if cursor_2 and cursor_1:get_value() ~= cursor_2:get_value() then
+                table.insert(ignore_list, cursor_2)
+            end
+        end
+    end
+
     -- See flags: https://neovim.io/doc/user/builtin.html#search()
     local flags = 'Wnb'
     if forward then
@@ -61,7 +74,17 @@ function Pairing:find_closest(forward)
 
     local ignore_func = function()
         local cursor = Cursor.get_current()
-        return cursor:is_comment() or cursor:is_string()
+        if cursor:is_comment() or cursor:is_string() then
+            return true
+        end
+
+        for _, ignore_cursor in ipairs(ignore_list) do
+            if ignore_cursor == cursor then
+                return true
+            end
+        end
+
+        return false
     end
 
     local escaped_pair = self:get_escaped()
