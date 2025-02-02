@@ -53,7 +53,7 @@ local function find_at_cursor(start_cursor, parent_range)
         local cursor_current = Cursor:get_current()
         start_cursor:set_current()
 
-        local stop_cursor = pairing:find_closest(true ,true)
+        local stop_cursor = pairing:find_closest(true, true)
         cursor_current:set_current()
 
         if not stop_cursor then
