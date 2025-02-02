@@ -157,12 +157,6 @@ function Range:hit_test(cursor)
         param_index = 0,
     }
 
-    if cursor == self.start_cursor and self.params[1]:is_after_cursor(cursor) then
-        cursor = cursor:get_next()
-    elseif cursor == self.stop_cursor and self.params[#self.params]:is_before_cursor(cursor) then
-        cursor = cursor:get_previous()
-    end
-
     for i = 2, #self.params do
         local param = self.params[i]
         local previous_param = self.params[i - 1]
