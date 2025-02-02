@@ -209,16 +209,15 @@ function Param:append_cell(cell)
     table.insert(self.cells, cell)
 end
 
-function Param:dump(depth)
-    depth = depth or 0
-    local indent = string.rep(' ', depth * vim.opt.shiftwidth:get())
+function Param:dump(log)
+    log:write(self.type)
+    log:indent()
 
-    print(string.format('%sParam', indent))
-
-    for i, cell in ipairs(self.cells) do
-        print(string.format('%scells[%d]', indent, i))
-        cell:dump(depth + 1)
+    for _, cell in ipairs(self.cells) do
+        cell:dump(log)
     end
+
+    log:unindent()
 end
 
 return Param

@@ -1,5 +1,6 @@
 local Builder = require('argonaut.builder')
 local Cursor  = require('argonaut.cursor')
+local Log     = require('argonaut.log')
 local Options = require('argonaut.options')
 local Range   = require('argonaut.range')
 
@@ -49,7 +50,7 @@ end
 local function inspect()
     local range = Range.find_closest(false)
     if range then
-        range:dump()
+        range:dump(Log:new())
         local trace = range:hit_test(Cursor.get_current())
         if trace then
             dump(trace)

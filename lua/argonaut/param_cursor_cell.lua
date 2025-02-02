@@ -45,15 +45,13 @@ function ParamCursorCell:get_stop_cursor()
     return self.cursor
 end
 
-function ParamCursorCell:dump(depth)
-    depth = depth or 0
-    local indent = string.rep(' ', depth * vim.opt.shiftwidth:get())
+function ParamCursorCell:dump(log)
+    log:write(self.type)
+    log:indent()
 
-    print(string.format(
-        '%sParamCursorCell %s',
-        indent,
-        self.cursor:to_string()
-    ))
+    log:write('cursor = %s', self.cursor:to_string())
+
+    log:unindent()
 end
 
 return ParamCursorCell

@@ -7,9 +7,7 @@ function Cursor.new(row, col)
 end
 
 function Cursor.get_first()
-    local row = 1
-    local line = vim.fn.getline(row)
-    return Cursor.new(row, #line)
+    return Cursor.new(1, 1)
 end
 
 function Cursor.get_last()
@@ -68,6 +66,8 @@ function Cursor:get_previous(allow_line_break)
         end
 
         return previous_cursor
+    else
+        print(self:to_string(), Cursor.get_first():to_string())
     end
 end
 
