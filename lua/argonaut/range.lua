@@ -235,7 +235,7 @@ function Range:write(builder, wrapped)
             end
         end
 
-        if not self:query_option('brace_last_wrap') then
+        if self:query_option('brace_last_wrap') then
             if self:query_option('brace_last_indent') then
                 builder:indent()
             end
