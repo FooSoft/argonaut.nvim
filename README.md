@@ -54,17 +54,17 @@ Foo(
     wibble,
     wobble,
     wubble
-)
+    )
 ```
 
 ```lua
--- brace_last_indent = true
+-- brace_last_indent = false
 
 Foo(
     wibble,
     wobble,
     wubble
-    )
+)
 ```
 
 #### `brace_last_wrap`
