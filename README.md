@@ -10,7 +10,7 @@ Features include:
 *   Wrapping and unwrapping of argument lists.
 *   Reformatting argument lists for consistency.
 *   Navigating forwards and backwards in argument lists.
-*   Declaring function objects for individual arguments.
+*   Declaring text objects for individual arguments.
 
 ## Configuration
 
