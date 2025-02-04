@@ -112,6 +112,7 @@ Specifies which closing brace should be preceded with a comma when wrapping line
 
 ```lua
 -- comma_last = true
+
 [
     1,
     2,
@@ -119,6 +120,7 @@ Specifies which closing brace should be preceded with a comma when wrapping line
 ]
 
 -- comma_last = false
+
 [
     1,
     2,
