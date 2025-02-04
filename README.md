@@ -186,7 +186,7 @@ Limits the maximum number of rows to consider for argument parsing.
 
 ## Commands
 
-Commands are not mapped by default; an example set of bindings is shown below.
+Commands are not mapped by default; an example set of bindings is shown below:
 
 ```lua
 vim.keymap.set('n', '<leader>a', ':<c-u>ArgonautToggle<cr>', {noremap = true, silent = true})
@@ -204,7 +204,7 @@ Wraps or unwraps the brace range containing the cursor.
 
 Reformats a brace range according to the active configuration.
 
-### `ArgonautObject`
+### `ArgonautObject [mode]`
 
 Several text objects are supported; an object mode must be passed to this command as an argument.
 
