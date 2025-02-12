@@ -1,6 +1,6 @@
 # Argonaut
 
-Argonaut is a Neovim extension for manipulating function arguments, lists, and dictionaries. It is the successor to [ArgWrap](/alex/vim-argwrap.git), a much more basic extension I created for Vim many years ago. Argonaut has more features, handles edge cases better, and is much easier to work on compared to its predecessor.
+Argonaut is a Neovim extension for manipulating function arguments, lists, and dictionaries. It is the successor to [ArgWrap](https://git.foosoft.net/alex/vim-argwrap.git), a much more basic extension I created for Vim many years ago. Argonaut has more features, handles edge cases better, and is much easier to work on compared to its predecessor.
 
 ![](img/demo.gif)
 
