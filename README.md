@@ -1,12 +1,11 @@
-# argonaut.nvim
+# Argonaut
 
-Argonaut is a Neovim extension for manipulating function arguments, lists, and dictionaries. It is the successor to
-[vim-argwrap](https://foosoft.net/projects/vim-argwrap), a much more basic extension I created for Vim many years ago.
-Argonaut has more features, handles edge cases better, and is much easier to work on compared to its predecessor.
+Argonaut is a Neovim extension for manipulating function arguments, lists, and dictionaries. It is the successor to [ArgWrap](/alex/vim-argwrap.git), a much more basic extension I created for Vim many years ago. Argonaut has more features, handles edge cases better, and is much easier to work on compared to its predecessor.
 
 ![](img/demo.gif)
 
 Features include:
+
 *   Wrapping and unwrapping of argument lists.
 *   Reformatting argument lists for consistency.
 *   Navigating forwards and backwards in argument lists.
@@ -32,15 +31,14 @@ require('argonaut').setup({
 })
 ```
 
-Global options can be overridden for specific file types by inserting a configuration in the `by_filetype` table. In the
-sample configuration shown above, we force all wrapped brace ranges in Go to end with a comma.
+Global options can be overridden for specific file types by inserting a configuration in the `by_filetype` table. In the sample configuration shown above, we force all wrapped brace ranges in Go to end with a comma.
 
-Per-brace configuration is possible by assigning tables instead of raw values. The following configuration only pads
-curly braces:
+Per-brace configuration is possible by assigning tables instead of raw values. The following configuration only pads curly braces:
 
 ```lua
 brace_pad = {['{'] = true},
 ```
+
 The table should be keyed on the type of brace you wish to specialize, where `*` matches everything.
 
 #### `brace_last_indent`
