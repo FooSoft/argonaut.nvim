@@ -104,7 +104,7 @@ Specifies which brace types should be padded on the inside with spaces.
 [1, 2, 3]
 ```
 
-### `comma_last`
+#### `comma_last`
 
 Specifies which closing brace should be preceded with a comma when wrapping lines.
 
@@ -126,7 +126,7 @@ Specifies which closing brace should be preceded with a comma when wrapping line
 ]
 ```
 
-### `comma_prefix`
+#### `comma_prefix`
 
 Specifies if the argument comma delimiter should be placed before arguments.
 
@@ -150,7 +150,7 @@ Foo(
 )
 ```
 
-### `comma_prefix_indent`
+#### `comma_prefix_indent`
 
 Specifies if the first argument should be indented when used in conjunction with `comma_prefix`.
 
@@ -174,11 +174,11 @@ Foo(
 )
 ```
 
-### `limit_cols`
+#### `limit_cols`
 
 Limits the maximum number of columns to consider for argument parsing.
 
-### `limit_rows`
+#### `limit_rows`
 
 Limits the maximum number of rows to consider for argument parsing.
 
@@ -194,15 +194,15 @@ vim.keymap.set({'x', 'o', 'n'}, '<leader>n', ':<c-u>ArgonautObject inner<cr>', {
 vim.keymap.set({'x', 'o', 'n'}, '<leader>p', ':<c-u>ArgonautObject outer<cr>', {noremap = true, silent = true})
 ```
 
-### `ArgonautToggle`
+#### `ArgonautToggle`
 
 Wraps or unwraps the brace range containing the cursor.
 
-### `ArgonautReflow`
+#### `ArgonautReflow`
 
 Reformats a brace range according to the active configuration.
 
-### `ArgonautObject [mode]`
+#### `ArgonautObject [mode]`
 
 Several text objects are supported; an object mode must be passed to this command as an argument.
 
@@ -213,10 +213,10 @@ Several text objects are supported; an object mode must be passed to this comman
 *   `beginning`: moves cursor to the beginning of the argument
 *   `end`: moves cursor to the end of the argument
 
-### `ArgonautInspect`
+#### `ArgonautInspect`
 
 Inspect the parsing and picking state for a brace range (development feature).
 
-### `ArgonautReload`
+#### `ArgonautReload`
 
 Reloads the extension, applying any code changes (development feature).
