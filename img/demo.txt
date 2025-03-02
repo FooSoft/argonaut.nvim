@@ -1,7 +1,0 @@
-Foo(wibble, wobble, wubble)
-
-foo = [bar, baz, qux, quux, corge]
-
-foo = {bar: 1, baz: 3, qux: 3, quux: 7}
-
-Foo([wibble, wobble, wubble], spam, {bar: baz, qux: [1, 3, 3, 7]})
