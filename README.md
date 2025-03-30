@@ -216,7 +216,3 @@ Several text objects are supported; an object mode must be passed to this comman
 #### `ArgonautInspect`
 
 Inspect the parsing and picking state for a brace range (development feature).
-
-#### `ArgonautReload`
-
-Reloads the extension, applying any code changes (development feature).
