@@ -4,23 +4,34 @@ else
     vim.g.argonaut_loaded = true
 end
 
-local function argonaut_inspect()
-    require('argonaut').inspect()
-end
+vim.api.nvim_create_user_command(
+    'ArgonautInspect',
+    function()
+        require('argonaut').inspect()
+    end,
+    {}
+)
 
-local function argonaut_object(ctx)
-    require('argonaut').object(unpack(ctx.fargs))
-end
+vim.api.nvim_create_user_command(
+    'ArgonautObject',
+    function(ctx)
+        require('argonaut').object(unpack(ctx.fargs))
+    end,
+    {nargs = 1}
+)
 
-local function argonaut_reflow()
-    require('argonaut').reflow(false)
-end
+vim.api.nvim_create_user_command(
+    'ArgonautReflow',
+    function()
+        require('argonaut').reflow(false)
+    end,
+    {}
+)
 
-local function argonaut_toggle()
-    require('argonaut').reflow(true)
-end
-
-vim.api.nvim_create_user_command('ArgonautInspect', argonaut_inspect, {})
-vim.api.nvim_create_user_command('ArgonautObject', argonaut_object, {nargs = 1})
-vim.api.nvim_create_user_command('ArgonautReflow', argonaut_reflow, {})
-vim.api.nvim_create_user_command('ArgonautToggle', argonaut_toggle, {})
+vim.api.nvim_create_user_command(
+    'ArgonautToggle',
+    function()
+        require('argonaut').reflow(true)
+    end,
+    {}
+)
