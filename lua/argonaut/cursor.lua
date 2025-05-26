@@ -2,7 +2,7 @@ local Cursor = {}
 Cursor.__index = Cursor
 
 function Cursor.new(row, col)
-    local cursor = {row = row, col = col}
+    local cursor = { row = row, col = col }
     return setmetatable(cursor, Cursor)
 end
 
@@ -22,7 +22,7 @@ function Cursor.get_current()
 end
 
 function Cursor:set_current()
-    vim.fn.setcursorcharpos({self.row, self.col})
+    vim.fn.setcursorcharpos({ self.row, self.col })
 end
 
 function Cursor:get_value()
@@ -55,7 +55,7 @@ function Cursor:get_previous(allow_line_break)
 
         if previous_cursor.col < 1 then
             previous_cursor.row = previous_cursor.row - 1
-            local line = vim.fn.getline(previous_cursor.row )
+            local line = vim.fn.getline(previous_cursor.row)
 
             local max_length = #line
             if allow_line_break then

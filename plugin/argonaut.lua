@@ -17,7 +17,7 @@ vim.api.nvim_create_user_command(
     function(ctx)
         require('argonaut').object(unpack(ctx.fargs))
     end,
-    {nargs = 1}
+    { nargs = 1 }
 )
 
 vim.api.nvim_create_user_command(

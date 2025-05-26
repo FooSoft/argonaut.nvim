@@ -7,7 +7,7 @@ local options_current = {
     limit_cols = 512,
     limit_rows = 64,
     by_filetype = {
-        go = {comma_last = true},
+        go = { comma_last = true },
     },
 }
 

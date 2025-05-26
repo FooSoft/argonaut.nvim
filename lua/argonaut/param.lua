@@ -2,7 +2,7 @@ Cursor = require('argonaut.cursor')
 ParamCursorCell = require('argonaut.param_cursor_cell')
 ParamRangeCell = require('argonaut.param_range_cell')
 
-local Param = {type = 'param'}
+local Param = { type = 'param' }
 Param.__index = Param
 
 function Param.new(range, index, cells)

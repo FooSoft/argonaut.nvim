@@ -14,10 +14,10 @@ end
 
 function Pairing.from_brace(brace)
     local all_pairs = {
-        {'(', ')'},
-        {'[', ']'},
-        {'{', '}'},
-        {'<', '>'},
+        { '(', ')' },
+        { '[', ']' },
+        { '{', '}' },
+        { '<', '>' },
     }
 
     for _, pair in ipairs(all_pairs) do
@@ -47,7 +47,7 @@ function Pairing:find_closest_pair(allow_current)
     if stop_cursor then
         local start_cursor = self:find_closest(false, allow_current)
         if start_cursor then
-            return {start_cursor = start_cursor, stop_cursor = stop_cursor}
+            return { start_cursor = start_cursor, stop_cursor = stop_cursor }
         end
     end
 end

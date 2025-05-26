@@ -1,8 +1,8 @@
-local ParamCursorCell = {type = 'param_cursor_cell'}
+local ParamCursorCell = { type = 'param_cursor_cell' }
 ParamCursorCell.__index = ParamCursorCell
 
 function ParamCursorCell.new(cursor)
-    local cell = {cursor = cursor}
+    local cell = { cursor = cursor }
     return setmetatable(cell, ParamCursorCell)
 end
 
@@ -12,7 +12,7 @@ end
 
 function ParamCursorCell:hit_test(cursor)
     if self.cursor == cursor then
-        return {{char = self.cursor:get_value(), type = self.type}}
+        return { { char = self.cursor:get_value(), type = self.type } }
     end
 end
 

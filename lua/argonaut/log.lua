@@ -2,7 +2,7 @@ local Log = {}
 Log.__index = Log
 
 function Log.new()
-    local log = {depth = 0}
+    local log = { depth = 0 }
     return setmetatable(log, Log)
 end
 

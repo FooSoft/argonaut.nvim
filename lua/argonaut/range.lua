@@ -3,12 +3,12 @@ local Options = require('argonaut.options')
 local Pairing = require('argonaut.pairing')
 local Param   = require('argonaut.param')
 
-local Range = {type = 'range'}
+local Range   = { type = 'range' }
 Range.__index = Range
 
 local function find_closest(allow_current)
     local ranges = {}
-    for _, brace in pairs({'(', '[', '{', '<'}) do
+    for _, brace in pairs({ '(', '[', '{', '<' }) do
         local pairing = Pairing.from_brace(brace)
         local pair = pairing:find_closest_pair(allow_current)
         if pair then
@@ -252,7 +252,7 @@ function Range:write(builder, wrapped)
             builder:write(' ')
         end
 
-        for i, param in ipairs( self.params ) do
+        for i, param in ipairs(self.params) do
             param:write(builder)
 
             local is_last_param = i == #self.params

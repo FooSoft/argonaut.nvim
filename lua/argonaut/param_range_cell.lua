@@ -1,8 +1,8 @@
-local ParamRangeCell = {type = 'param_range_cell'}
+local ParamRangeCell = { type = 'param_range_cell' }
 ParamRangeCell.__index = ParamRangeCell
 
 function ParamRangeCell.new(range)
-    local cell = {range = range}
+    local cell = { range = range }
     return setmetatable(cell, ParamRangeCell)
 end
 
@@ -12,13 +12,13 @@ end
 
 function ParamRangeCell:hit_test(cursor)
     if cursor == self.range.start_cursor then
-        return {{type = self.type, mode = 'before'}}
+        return { { type = self.type, mode = 'before' } }
     elseif cursor == self.range.stop_cursor then
-        return {{type = self.type, mode = 'after'}}
+        return { { type = self.type, mode = 'after' } }
     else
         local trace = self.range:hit_test(cursor)
         if trace then
-            table.insert(trace, 1, {type = self.type, mode = 'inside'})
+            table.insert(trace, 1, { type = self.type, mode = 'inside' })
             return trace
         end
     end
