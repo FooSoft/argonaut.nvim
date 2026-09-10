@@ -1,4 +1,5 @@
 local Cursor = require('argonaut.cursor')
+local Options = require('argonaut.options')
 
 local Pairing = {}
 Pairing.__index = Pairing
@@ -55,8 +56,10 @@ end
 function Pairing:find_closest(forward, allow_current)
     local ignore_list = {}
 
+    -- searchpairpos excludes the current brace. Also skip its mate when looking
+    -- for the surrounding list, so a cursor on a nested brace selects its parent.
     if not allow_current then
-        local cursor_1 = Cursor:get_current()
+        local cursor_1 = Cursor.get_current()
         local pairing = Pairing.from_brace(cursor_1:get_value())
         if pairing then
             local cursor_2 = pairing:find_closest(forward, true)
@@ -66,13 +69,14 @@ function Pairing:find_closest(forward, allow_current)
         end
     end
 
-    -- See flags: https://neovim.io/doc/user/builtin.html#search()
+    -- W disables buffer wrapping, n preserves the cursor, and b searches backward.
     local flags = 'Wnb'
     if forward then
         flags = 'Wn'
     end
 
     local ignore_func = function()
+        -- During this callback, Vim places the cursor at the candidate match.
         local cursor = Cursor.get_current()
         if cursor:is_comment() or cursor:is_string() then
             return true
@@ -88,12 +92,15 @@ function Pairing:find_closest(forward, allow_current)
     end
 
     local escaped_pair = self:get_escaped()
+    local row_limit = Options.query('limit_rows', self)
+    local stop_row = math.max(1, Cursor.get_current().row + (forward and row_limit or -row_limit))
     local cursor = Cursor.new(unpack(vim.fn.searchpairpos(
         escaped_pair.open,
         '',
         escaped_pair.close,
         flags,
-        ignore_func
+        ignore_func,
+        stop_row
     )))
 
     if cursor:is_valid() then

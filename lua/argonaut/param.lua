@@ -1,6 +1,6 @@
-Cursor = require('argonaut.cursor')
-ParamCursorCell = require('argonaut.param_cursor_cell')
-ParamRangeCell = require('argonaut.param_range_cell')
+local Cursor = require('argonaut.cursor')
+local ParamCursorCell = require('argonaut.param_cursor_cell')
+local ParamRangeCell = require('argonaut.param_range_cell')
 
 local Param = { type = 'param' }
 Param.__index = Param
@@ -22,7 +22,7 @@ function Param:write(builder, wrapped)
 end
 
 function Param:hit_test(cursor)
-    -- skip cursor over spaces on the left
+    -- Padding is discarded on write, so pick the nearest surviving argument character.
     for i = 1, self:get_left_padding(), 1 do
         local cell = self.cells[i]
         if cell:hit_test(cursor) then
@@ -30,7 +30,6 @@ function Param:hit_test(cursor)
         end
     end
 
-    -- skip cursor over spaces on the right
     for i = #self.cells, #self.cells - self:get_right_padding() + 1, -1 do
         local cell = self.cells[i]
         if cell:hit_test(cursor) then
@@ -82,6 +81,8 @@ function Param:is_empty()
 end
 
 function Param:is_contiguous()
+    -- Only nested range cells may span lines. Joining other line breaks could
+    -- change an expression or a multiline string's contents.
     for i = 1 + self:get_left_padding(), #self.cells - self:get_right_padding() - 1 do
         local cell = self.cells[i]
         local next_cell = self.cells[i + 1]
@@ -159,6 +160,7 @@ function Param:object(mode)
         stop_cursor = get_last_unpadded_cell(self):get_stop_cursor()
     elseif mode == 'outer' then
         select = true
+        -- Include the preceding comma when possible, otherwise the following one.
         if previous_param then
             start_cursor = get_last_unpadded_cell(previous_param):get_stop_cursor():get_next()
             stop_cursor = self.cells[#self.cells]:get_stop_cursor()
@@ -188,12 +190,16 @@ function Param:object(mode)
     end
 
     if stop_cursor then
-        local virtualedit_old = vim.opt.virtualedit
+        local virtualedit_old = vim.o.virtualedit
         vim.opt.virtualedit = 'onemore'
 
         if select then
+            if vim.o.selection == 'exclusive' then
+                -- Cell endpoints are inclusive; Visual selection may exclude its end.
+                stop_cursor = stop_cursor:get_next(true) or stop_cursor
+            end
             start_cursor:set_current()
-            vim.cmd(string.format(':normal! v'))
+            vim.cmd('normal! v')
         end
 
         stop_cursor:set_current()

@@ -3,6 +3,8 @@ local Options = require('argonaut.options')
 local Pairing = require('argonaut.pairing')
 local Param   = require('argonaut.param')
 
+-- A range owns arguments; each argument contains characters or nested ranges.
+-- Nested ranges are single cells, so their commas cannot split the parent list.
 local Range   = { type = 'range' }
 Range.__index = Range
 
@@ -20,32 +22,16 @@ local function find_closest(allow_current)
     end
 
     if #ranges > 0 then
-        local range_compare = function(range_1, range_2)
-            local cursor = Cursor:get_current()
-
-            local row_diff_1 = range_1.start_cursor.row - cursor.row
-            local col_diff_1 = range_1.start_cursor.col - cursor.col
-            local row_diff_2 = range_2.start_cursor.row - cursor.row
-            local col_diff_2 = range_2.start_cursor.col - cursor.col
-
-            if row_diff_1 < row_diff_2 then
-                return false
-            elseif row_diff_1 > row_diff_2 then
-                return true
-            elseif col_diff_1 < col_diff_2 then
-                return false
-            elseif col_diff_1 > col_diff_2 then
-                return true
-            else
-                return true
-            end
-        end
-
-        table.sort(ranges, range_compare)
+        -- The latest opening brace identifies the innermost valid range.
+        table.sort(ranges, function(a, b)
+            return b.start_cursor < a.start_cursor
+        end)
         return ranges[1]
     end
 end
 
+-- The second return value marks an invalid nested range. Callers must abort
+-- instead of treating its braces and commas as ordinary parent argument text.
 local function find_at_cursor(start_cursor, parent_range)
     local value = start_cursor:get_value()
     local pairing = Pairing.from_brace(value)
@@ -57,14 +43,16 @@ local function find_at_cursor(start_cursor, parent_range)
         cursor_current:set_current()
 
         if not stop_cursor then
-            return
+            -- An unmatched angle bracket may be a comparison operator.
+            return nil, value ~= '<'
         end
 
         if parent_range and parent_range.stop_cursor <= stop_cursor then
-            return
+            return nil, true
         end
 
-        return Range.new(start_cursor, stop_cursor, pairing)
+        local range = Range.new(start_cursor, stop_cursor, pairing)
+        return range, range == nil
     end
 end
 
@@ -88,12 +76,10 @@ end
 
 function Range:parse()
     local param = nil
-    local param_index = 1
 
     local append_param_value = function(cell)
         if not param then
-            param = Param.new(self, param_index)
-            param_index = param_index + 1
+            param = Param.new(self, #self.params + 1)
         end
         param:append_cell(cell)
     end
@@ -108,13 +94,14 @@ function Range:parse()
         return contiguous
     end
 
-    if self.start_cursor.row == self.stop_cursor.row then
-        if self.stop_cursor.col - self.start_cursor.col > self:query_option('limit_cols') then
-            return
-        end
-    else
-        if self.stop_cursor.row - self.start_cursor.row > self:query_option('limit_rows') then
-            return
+    if self.stop_cursor.row - self.start_cursor.row > self:query_option('limit_rows') then
+        return false
+    end
+    for row = self.start_cursor.row, self.stop_cursor.row do
+        local first_col = row == self.start_cursor.row and self.start_cursor.col or 1
+        local last_col = row == self.stop_cursor.row and self.stop_cursor.col or #vim.fn.getline(row)
+        if last_col - first_col > self:query_option('limit_cols') then
+            return false
         end
     end
 
@@ -122,16 +109,24 @@ function Range:parse()
     while cursor ~= self.stop_cursor do
         local value = cursor:get_value()
 
-        if cursor:is_string() or cursor:is_comment() then
+        -- Moving a comment can turn following arguments or braces into comment text.
+        if cursor:is_comment() then
+            return false
+        elseif cursor:is_string() then
             append_param_value(Param.new_cursor_cell(cursor))
         else
-            local range = find_at_cursor(cursor, self)
-            if range then
+            local range, invalid = find_at_cursor(cursor, self)
+            if invalid then
+                return false
+            elseif range then
                 append_param_value(Param.new_range_cell(range))
                 assert(range.stop_cursor < self.stop_cursor)
                 cursor = range.stop_cursor
+            elseif value == ')' or value == ']' or value == '}' then
+                return false
             elseif value == ',' then
-                if not append_param() then
+                -- Leading/repeated commas must not silently erase empty arguments.
+                if not param or param:is_empty() or not append_param() then
                     return false
                 end
             else
@@ -142,9 +137,12 @@ function Range:parse()
         cursor = cursor:get_next()
     end
 
+    -- Empty final content is valid for empty lists and trailing commas.
     return append_param()
 end
 
+-- Traces describe a path from the range through its arguments/cells to a cursor.
+-- hit_search follows that path; truncating it selects an enclosing object instead.
 function Range:hit_test(cursor)
     if not self:contains_cursor(cursor) or #self.params == 0 then
         return
@@ -157,6 +155,7 @@ function Range:hit_test(cursor)
         param_index = 0,
     }
 
+    -- A separator belongs to the preceding argument for picking and navigation.
     for i = 2, #self.params do
         local param = self.params[i]
         local previous_param = self.params[i - 1]
@@ -193,78 +192,75 @@ function Range:hit_search(trace, depth)
 end
 
 function Range:write(builder, wrapped)
+    -- Parent writers omit wrapped for child cells to preserve each child's layout.
     if wrapped == nil then
         wrapped = self:is_wrapped()
     end
 
-    if wrapped then
-        builder:write(self.pairing.open)
-
-        if #self.params > 0 then
-            builder:endline()
-            builder:push_indent()
-
-            for i, param in ipairs(self.params) do
-                local is_first_param = i == 1
-                local is_last_param = i == #self.params
-
-                if self:query_option('comma_prefix') then
-                    if is_first_param then
-                        if self:query_option('comma_prefix_indent') then
-                            builder:write('  ')
-                        end
-                    else
-                        builder:write(', ')
-                    end
-                    param:write(builder)
-                else
-                    param:write(builder)
-                    if not is_last_param or self:query_option('comma_last') then
-                        builder:write(',')
-                    end
-                end
-
-                if not is_last_param then
-                    builder:endline()
-                end
-            end
-
-            if self:query_option('brace_last_wrap') then
-                builder:endline()
-                builder:pop_indent()
-            end
-        end
-
-        if self:query_option('brace_last_wrap') then
-            if self:query_option('brace_last_indent') then
-                builder:indent()
-            end
-
-            if self:query_option('brace_pad') then
-                builder:write(' ')
-            end
-        end
-
-        builder:write(self.pairing.close)
-    else
-        builder:write(self.pairing.open)
-        if self:query_option('brace_pad') then
+    local pad = self:query_option('brace_pad')
+    builder:write(self.pairing.open, self.start_cursor)
+    if #self.params == 0 then
+        if pad then
             builder:write(' ')
         end
+        builder:write(self.pairing.close, self.stop_cursor)
+        return
+    end
 
+    if not wrapped then
+        if pad then
+            builder:write(' ')
+        end
         for i, param in ipairs(self.params) do
             param:write(builder)
-
-            local is_last_param = i == #self.params
-            if not is_last_param then
+            if i < #self.params then
                 builder:write(', ')
             end
         end
-
-        if self:query_option('brace_pad') then
+        if pad then
             builder:write(' ')
         end
-        builder:write(self.pairing.close)
+        builder:write(self.pairing.close, self.stop_cursor)
+        return
+    end
+
+    local comma_prefix = self:query_option('comma_prefix')
+    local last_wrap = self:query_option('brace_last_wrap')
+    local last_indent = self:query_option('brace_last_indent')
+    builder:endline()
+    builder:push_indent()
+
+    for i, param in ipairs(self.params) do
+        local last = i == #self.params
+        if comma_prefix then
+            if i > 1 then
+                builder:write(', ')
+            elseif self:query_option('comma_prefix_indent') then
+                builder:write('  ')
+            end
+        end
+        param:write(builder)
+        if (last and self:query_option('comma_last')) or (not last and not comma_prefix) then
+            builder:write(',')
+        end
+        if not last then
+            builder:endline()
+        end
+    end
+
+    if last_wrap then
+        builder:endline()
+        if not last_indent then
+            builder:pop_indent()
+        end
+        if pad then
+            builder:write(' ')
+        end
+    end
+    builder:write(self.pairing.close, self.stop_cursor)
+    if not last_wrap or last_indent then
+        -- Restore the parent's depth even when the closing brace stays on this line.
+        builder:pop_indent()
     end
 end
 
@@ -283,16 +279,17 @@ function Range:is_contiguous()
 end
 
 function Range:is_wrapped()
+    -- Compare unpadded argument boundaries, ignoring line breaks inside child ranges.
     local previous_cursor = self.start_cursor
     for _, param in ipairs(self.params) do
-        local start_cursor = param:get_start_cursor()
+        local start_cursor = param.cells[param:get_left_padding() + 1]:get_start_cursor()
         if start_cursor.row ~= previous_cursor.row then
             return true
         end
-        previous_cursor = param:get_stop_cursor()
+        previous_cursor = param.cells[#param.cells - param:get_right_padding()]:get_stop_cursor()
     end
 
-    return false
+    return previous_cursor.row ~= self.stop_cursor.row
 end
 
 function Range:query_option(name)

@@ -176,11 +176,11 @@ Foo(
 
 #### `limit_cols`
 
-Limits the maximum number of columns to consider for argument parsing.
+Limits the maximum number of columns to consider on each line of an argument range.
 
 #### `limit_rows`
 
-Limits the maximum number of rows to consider for argument parsing.
+Limits the maximum number of rows to search and parse around the cursor.
 
 ## Commands
 
@@ -190,8 +190,8 @@ Commands are not mapped by default; an example set of bindings is shown below:
 vim.keymap.set('n', '<leader>a', ':<c-u>ArgonautToggle<cr>', {noremap = true, silent = true})
 vim.keymap.set({'x', 'o'}, 'ia', ':<c-u>ArgonautObject inner<cr>', {noremap = true, silent = true})
 vim.keymap.set({'x', 'o'}, 'aa', ':<c-u>ArgonautObject outer<cr>', {noremap = true, silent = true})
-vim.keymap.set({'x', 'o', 'n'}, '<leader>n', ':<c-u>ArgonautObject inner<cr>', {noremap = true, silent = true})
-vim.keymap.set({'x', 'o', 'n'}, '<leader>p', ':<c-u>ArgonautObject outer<cr>', {noremap = true, silent = true})
+vim.keymap.set({'x', 'o', 'n'}, '<leader>n', ':<c-u>ArgonautObject next<cr>', {noremap = true, silent = true})
+vim.keymap.set({'x', 'o', 'n'}, '<leader>p', ':<c-u>ArgonautObject previous<cr>', {noremap = true, silent = true})
 ```
 
 #### `ArgonautToggle`
@@ -216,3 +216,19 @@ Several text objects are supported; an object mode must be passed to this comman
 #### `ArgonautInspect`
 
 Inspect the parsing and picking state for a brace range (development feature).
+
+## Parsing
+
+String and comment detection uses Vim syntax highlighting. Enable syntax highlighting
+and set the buffer's file type so delimiters inside strings are recognized correctly.
+Ranges containing comments, malformed nested braces, empty arguments (except a trailing
+comma), or arguments spanning lines outside nested ranges are left unchanged. Reflow
+preserves the wrapping of nested ranges.
+
+## Tests
+
+Run the regression suite from the repository root with Neovim:
+
+```sh
+./test.sh
+```

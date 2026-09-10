@@ -7,7 +7,7 @@ function Log.new()
 end
 
 function Log:write(text, ...)
-    local indent = string.rep(' ', self.depth * vim.opt.shiftwidth:get())
+    local indent = string.rep(' ', self.depth * vim.fn.shiftwidth())
     print(indent .. string.format(text, ...))
 end
 

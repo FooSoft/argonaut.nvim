@@ -7,7 +7,7 @@ function ParamCursorCell.new(cursor)
 end
 
 function ParamCursorCell:write(builder, _)
-    builder:write(self.cursor:get_value())
+    builder:write(self.cursor:get_value(), self.cursor)
 end
 
 function ParamCursorCell:hit_test(cursor)

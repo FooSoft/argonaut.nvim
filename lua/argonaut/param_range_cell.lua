@@ -11,6 +11,8 @@ function ParamRangeCell:write(builder, wrapped)
 end
 
 function ParamRangeCell:hit_test(cursor)
+    -- A brace belongs to this cell in the parent argument. Only positions inside
+    -- the braces descend into the nested range's arguments.
     if cursor == self.range.start_cursor then
         return { { type = self.type, mode = 'before' } }
     elseif cursor == self.range.stop_cursor then
